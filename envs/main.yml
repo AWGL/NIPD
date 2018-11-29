@@ -1,0 +1,14 @@
+name: nipd
+channels:
+- bioconda
+dependencies:
+- python =3.6
+- bwa =0.7.8
+- fastp =0.14.1
+- snakemake =5.1.4
+- samtools =1.9
+- picard =2.18.9
+- gatk4 =4.0.6.0
+- fastq-screen = 0.11.3
+- fastqc = 0.11.8 
+- r = 3.5.1

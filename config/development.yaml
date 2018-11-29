@@ -1,0 +1,60 @@
+bwa_reference:
+  /Users/josephhalstead/Documents/genomics_resources/bwa/human_g1k_v37.fasta
+reference:
+  /Users/josephhalstead/Documents/genomics_resources/refs/human_g1k_v37.fasta
+reference_sequence_dict:
+  /Users/josephhalstead/Documents/genomics_resources/refs/human_g1k_v37.dict
+worksheet:
+  my_worksheet
+flowcell:
+  my_flowcell
+centre:
+  AWGL
+dbsnp_vcf:
+  /Users/josephhalstead/Documents/genomics_resources/snps/gnomad.exomes.r2.0.1.sites.vcf.gz
+bwa_threads:
+  1
+fastp_threads:
+  1
+fastq_screen_config:
+  /Users/josephhalstead/Documents/pipelines/gatk_snakemake/configs/fastq_screen.txt
+fastq_screen_threads:
+  1
+samples:
+ [child,mum,plasma ]
+sample_numbers:
+  [S1,S2,S3]
+picard_temp_dir:
+  /tmp/
+interval_padding:
+  20
+capture_bed_file:
+  /Users/josephhalstead/Documents/NIPD/NIPD-SG/config/DMD_all.bed
+fastqc_threads:
+  1
+fastqc_temp_dir:
+  /tmp/
+min_QD:
+  2.0
+max_FS:
+  60.0
+max_SOR:
+  3.0
+min_MQ:
+  40.0
+min_MQRankSum:
+  -12.5
+min_ReadPosRankSum:
+  -8.0
+
+
+
+families:
+  FAM001:
+    analysis_required: X-linked
+    gene_required: DMD
+    members:
+      mother: HG004_mum_DMD
+      plasma: HG004_plasma_DMD
+      proband: HG002_son_DMD
+      father: null
