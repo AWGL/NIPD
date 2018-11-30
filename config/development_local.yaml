@@ -1,0 +1,154 @@
+# Resource Locations
+
+bwa_reference:
+  /Users/josephhalstead/Documents/genomics_resources/bwa/human_g1k_v37.fasta
+reference:
+  /Users/josephhalstead/Documents/genomics_resources/refs/human_g1k_v37.fasta
+dbsnp_vcf:
+  /Users/josephhalstead/Documents/genomics_resources/snps/gnomad.exomes.r2.0.1.sites.vcf.gz
+1000k_high_confidence_snps:
+  /Users/josephhalstead/Documents/genomics_resources/snps/1000G_phase1.snps.high_confidence.b37.vcf
+gene_bed_file:
+  /Users/josephhalstead/Documents/NIPD/NIPD/config/beds/NIPDv6_genes.bed
+capture_bed_file:
+  /Users/josephhalstead/Documents/NIPD/NIPD/config/beds/NIPDv6_capture_targets.bed
+primary_bed_file:
+  /Users/josephhalstead/Documents/NIPD/NIPD/config/beds/NIPDv6_primary_targets.bed
+reference_sequence_dict:
+  /Users/josephhalstead/Documents/genomics_resources/refs/human_g1k_v37.dict
+picard_temp_dir:
+  /tmp/
+fastqc_temp_dir:
+  /tmp/
+
+
+# Threads to Use
+variant_evaluation_threads:
+  1
+bwa_threads:
+  1
+fastp_threads:
+  1
+fastq_screen_threads:
+  2
+fastqc_threads:
+  2
+
+
+# Java Options 
+gatk_hc_java_options:
+  -XX:GCTimeLimit=50 -XX:GCHeapFreeLimit=10 -Djava.io.tmpdir=/tmp/ -Xmx12g
+gatk_bqsr_java_options:
+  -XX:GCTimeLimit=50 -XX:GCHeapFreeLimit=10 -Djava.io.tmpdir=/tmp/ -Xmx4g
+gatk_analyse_covariates_java_options:
+  -XX:GCTimeLimit=50 -XX:GCHeapFreeLimit=10 -Djava.io.tmpdir=/tmp/ -Xmx2g
+gatk_variants_java_options:
+  -XX:GCTimeLimit=50 -XX:GCHeapFreeLimit=10 -Djava.io.tmpdir=/tmp/ -Xmx4g
+gatk_genomics_db_java_options:
+  -XX:GCTimeLimit=50 -XX:GCHeapFreeLimit=10 -Djava.io.tmpdir=/tmp/ -Xmx12g
+picard_memory_options:
+  -XX:GCTimeLimit=50 -XX:GCHeapFreeLimit=10 -Djava.io.tmpdir=/tmp/ -Xmx20g
+
+# Misc Settings
+# Max records in picard MarkDuplicates
+merge_duplicates_max_records:
+  2000000
+chromosomes:
+  ['7', '9', '16', 'X']
+interval_padding_haplotype_caller:
+  100
+
+# Run Level Information
+seqID:
+  181129_NB551415_0005_AHWW37BGX7
+platform:
+  ILLUMINA
+worklistId:
+  test
+flowcell:
+  my_flowcell
+centre:
+  AWGL
+pipelineName:
+  NIPD
+pipelineVersion:
+  0.0.1
+panel:
+  NIPD1
+
+# Variant Filtering
+min_QD:
+  2.0
+max_FS:
+  60.0
+max_SOR:
+  3.0
+min_MQ:
+  40.0
+min_MQRankSum:
+  -12.5
+min_ReadPosRankSum:
+  -8.0
+
+
+
+families:
+  FAM001:
+    analysis_required: X-linked
+    members:
+      mother: 14M01888
+      plasma: F1-15
+      proband: 14M02709
+      father: null
+  FAM002:
+    analysis_required: X-linked
+    members:
+      mother: 14M01888
+      plasma: F2-10
+      proband: 14M02709
+      father: null
+  FAM003:
+    analysis_required: X-linked
+    members:
+      mother: 14M01888
+      plasma: F3-8
+      proband: 14M02709
+      father: null
+  FAM004:
+    analysis_required: X-linked
+    members:
+      mother: 14M01888
+      plasma: F4-5
+      proband: 14M02709
+      father: null
+  FAM005:
+    analysis_required: X-linked
+    members:
+      mother: 14M01888
+      plasma: F5-2
+      proband: 14M02709
+      father: null
+  FAM006:
+    analysis_required: X-linked
+    members:
+      mother: null
+      plasma: 16M96501
+      proband: null
+      father: null
+  FAM007:
+    analysis_required: X-linked
+    members:
+      mother: null
+      plasma: 16M96867
+      proband: null
+      father: null
+  FAM008:
+    analysis_required: X-linked
+    members:
+      mother: 14M01888
+      plasma: F5-2-DIL
+      proband: 14M02709
+      father: null
+
+
+
