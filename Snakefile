@@ -20,8 +20,8 @@ sample, name, lanes = glob_wildcards("{sample_name}/{sample_number}_{lane}_R1_00
 lanes =  list((set(lanes)))
 
 chromosomes = config["chromosomes"]
-sample_names = ["14M01888", "14M02709" ]
-sample_numbers = ["S1", "S2" ]
+sample_names = config["samples"]
+sample_numbers = config["sample_numbers"]
 panel = config["panel"]
 
 #-----------------------------------------------------------------------------------------------------------------#

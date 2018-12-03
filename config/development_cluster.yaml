@@ -88,7 +88,11 @@ min_MQRankSum:
 min_ReadPosRankSum:
   -8.0
 
+samples:
+  [14M01888,14M02709,F1-15,F2-10,F3-8,F4-5,F5-2,16M96501,16M96867,F5-2-DIL]
 
+sample_numbers:
+  [S1, S2, S3, S4, S5, S6, S7, S8, S9, S10]
 
 families:
   FAM001:
