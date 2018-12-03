@@ -1,0 +1,2 @@
+snakemake --jobs 1 --cluster "qsub -d /share/data/results/snakemake_test/" --directory /share/data/results/snakemake_test/ --jobscript job_script.sh -s /share/data/results/snakemake_test/Snakefile  mapped_reads/my_file.bam
+snakemake --jobs 1 --cluster "qsub -d /share/data/results/snakemake_test/" --directory /share/data/results/snakemake_test/ -s /share/data/results/snakemake_test/Snakefile  mapped_reads/my_file.bam

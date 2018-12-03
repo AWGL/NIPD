@@ -1,38 +1,36 @@
 # Resource Locations
 
 bwa_reference:
-  /Users/josephhalstead/Documents/genomics_resources/bwa/human_g1k_v37.fasta
+  /state/partition1/db/human/mappers/b37/bwa/human_g1k_v37.fasta
 reference:
-  /Users/josephhalstead/Documents/genomics_resources/refs/human_g1k_v37.fasta
+  /state/partition1/db/human/gatk/2.8/b37/human_g1k_v37.fasta
 dbsnp_vcf:
-  /Users/josephhalstead/Documents/genomics_resources/snps/gnomad.exomes.r2.0.1.sites.vcf.gz
-1000k_high_confidence_snps:
-  /Users/josephhalstead/Documents/genomics_resources/snps/1000G_phase1.snps.high_confidence.b37.vcf
+  /state/partition1/db/human/gatk/2.8/b37/dbsnp_138.b37_new.vcf.gz
 gene_bed_file:
-  /Users/josephhalstead/Documents/NIPD/NIPD/config/beds/NIPDv6_genes.bed
+  /data/results/181129_NB551415_0005_AHWW37BGX7/NIPD1/config/beds/NIPDv6_genes.bed
 capture_bed_file:
-  /Users/josephhalstead/Documents/NIPD/NIPD/config/beds/NIPDv6_capture_targets.bed
+ /data/results/181129_NB551415_0005_AHWW37BGX7/NIPD1/config/beds/NIPDv6_capture_targets.bed
 primary_bed_file:
-  /Users/josephhalstead/Documents/NIPD/NIPD/config/beds/NIPDv6_primary_targets.bed
+  /data/results/181129_NB551415_0005_AHWW37BGX7/NIPD1/config/beds/NIPDv6_primary_targets.bed
 reference_sequence_dict:
-  /Users/josephhalstead/Documents/genomics_resources/refs/human_g1k_v37.dict
+  /data/db/human/mappers/b37/bwa/human_g1k_v37.dict
 picard_temp_dir:
-  /tmp/
+  /state/partition1/tmpdir
 fastqc_temp_dir:
-  /tmp/
+  /state/partition1/tmpdir
 
 
 # Threads to Use
 variant_evaluation_threads:
   1
 bwa_threads:
-  1
+  12
 fastp_threads:
-  1
+  12
 fastq_screen_threads:
-  2
+  12
 fastqc_threads:
-  2
+  12
 
 
 # Java Options 
