@@ -1,13 +1,23 @@
 {
     "__default__" :
     {
-        "account" : "my account",
-        "time" : "00:15:00",
-        "n" : 1,
-        "partition" : "core"
+        "walltime" : "12:00:00",
+        "ncpus" : 12
     },
-    "compute1" :
+    "create_gvcfs" :
     {
-        "time" : "00:20:00"
-    }
+        "walltime" : "6:00:00",
+        "ncpus" : 3
+    },
+    "create_genomics_db" :
+    {
+        "walltime" : "6:00:00",
+        "ncpus" : 3
+    },
+    "genotype_gvcfs" :
+    {
+        "walltime" : "6:00:00",
+        "ncpus" : 3
+    },
+
 }

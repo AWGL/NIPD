@@ -256,8 +256,19 @@ rule split_bam_per_chromosome:
 	output:
 		bams = expand("output/split_bams/{{sample_name}}_{{sample_number}}_bqsr_chr{chr}.bam", chr=chromosomes),
 		indexes = expand("output/split_bams/{{sample_name}}_{{sample_number}}_bqsr_chr{chr}.bam.bai", chr=chromosomes)
+	params:
+		chromosomes = " ".join(chromosomes)
 	shell:
-		"bash utils/pipeline_scripts/split_bam_per_chromosome.sh {wildcards.sample_name}_{wildcards.sample_number} {input.bam} "
+		"""
+		# Split a bam by chromosome
+		for chr in {params.chromosomes}; do
+
+			samtools view {input.bam} $chr -b >  "output/split_bams/{wildcards.sample_name}_{wildcards.sample_number}_bqsr_chr"$chr".bam";
+			samtools index "output/split_bams/{wildcards.sample_name}_{wildcards.sample_number}_bqsr_chr"$chr".bam";
+
+		done
+
+		"""
 
 # Sort ROI bed for splitting by bedextract
 rule sort_capture_bed:
