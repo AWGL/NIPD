@@ -254,8 +254,8 @@ rule split_bam_per_chromosome:
 		bam = "output/merged_bams/{sample_name}_{sample_number}_merged_nodups.bam",
 		bam_index = "output/merged_bams/{sample_name}_{sample_number}_merged_nodups.bai"
 	output:
-		bams = expand("output/split_bams/{{sample_name}}_{{sample_number}}_bqsr_chr{chr}.bam", chr=chromosomes),
-		indexes = expand("output/split_bams/{{sample_name}}_{{sample_number}}_bqsr_chr{chr}.bam.bai", chr=chromosomes)
+		bams = expand("output/split_bams/{{sample_name}}_{{sample_number}}_merged_nodups_chr{chr}.bam", chr=chromosomes),
+		indexes = expand("output/split_bams/{{sample_name}}_{{sample_number}}_merged_nodups{chr}.bam.bai", chr=chromosomes)
 	params:
 		chromosomes = " ".join(chromosomes)
 	shell:
@@ -263,8 +263,8 @@ rule split_bam_per_chromosome:
 		# Split a bam by chromosome
 		for chr in {params.chromosomes}; do
 
-			samtools view {input.bam} $chr -b >  "output/split_bams/{wildcards.sample_name}_{wildcards.sample_number}_bqsr_chr"$chr".bam";
-			samtools index "output/split_bams/{wildcards.sample_name}_{wildcards.sample_number}_bqsr_chr"$chr".bam";
+			samtools view {input.bam} $chr -b >  "output/split_bams/{wildcards.sample_name}_{wildcards.sample_number}_merged_nodups_chr"$chr".bam";
+			samtools index "output/split_bams/{wildcards.sample_name}_{wildcards.sample_number}_merged_nodups_chr"$chr".bam;
 
 		done
 
@@ -294,8 +294,8 @@ rule split_bed_by_chromosome:
 # Create GVCF using Haplotype Caller for each sample chromosome combination
 rule create_gvcfs:
 	input:
-		bam_file = "output/split_bams/{sample_name}_{sample_number}_bqsr_chr{chr}.bam",
-		bam_index= "output/split_bams/{sample_name}_{sample_number}_bqsr_chr{chr}.bam.bai",
+		bam_file = "output/split_bams/{sample_name}_{sample_number}_merged_nodups_chr{chr}.bam",
+		bam_index= "output/split_bams/{sample_name}_{sample_number}_merged_nodups_chr{chr}.bam.bai",
 		bed = "output/config/split_capture_bed/{chr}.bed"
 	output:
 		gvcf_file = "output/gvcfs/{sample_name}_{sample_number}_chr{chr}.g.vcf"
