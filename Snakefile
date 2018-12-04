@@ -128,7 +128,7 @@ rule bwa_align:
 		"-R '@RG\\tID:{params.worksheet}.{params.flowcell}.{wildcards.lane}\\tCN:{params.centre}\\tSM:{wildcards.sample_name}\\tLB:{params.worksheet}\\tPL:ILLUMINA' "
 		"{params.ref} {input.fwd} {input.rev} | "
 		"samtools view -Sb - | "
-		"samtools sort -T {samtools_temp_dir} -O bam > {output}"
+		"samtools sort -T {params.samtools_temp_dir} -O bam > {output}"
 
 # index bam file
 rule index_original_bam:
@@ -257,7 +257,7 @@ rule split_bam_per_chromosome:
 		bams = expand("output/split_bams/{{sample_name}}_{{sample_number}}_bqsr_chr{chr}.bam", chr=chromosomes),
 		indexes = expand("output/split_bams/{{sample_name}}_{{sample_number}}_bqsr_chr{chr}.bam.bai", chr=chromosomes)
 	shell:
-		"bash scripts/split_bam_per_chromosome.sh {wildcards.sample_name}_{wildcards.sample_number} {input.bam} "
+		"bash utils/pipeline_scripts/split_bam_per_chromosome.sh {wildcards.sample_name}_{wildcards.sample_number} {input.bam} "
 
 # Sort ROI bed for splitting by bedextract
 rule sort_capture_bed:
