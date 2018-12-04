@@ -35,7 +35,9 @@ fastqc_threads:
   2
 
 
-# Java Options 
+# Java Options
+java_home:
+  /Users/josephhalstead/miniconda3/envs/nipd/bin/java
 gatk_hc_java_options:
   -XX:GCTimeLimit=50 -XX:GCHeapFreeLimit=10 -Djava.io.tmpdir=/tmp/ -Xmx12g
 gatk_bqsr_java_options:

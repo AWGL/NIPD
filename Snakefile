@@ -25,7 +25,7 @@ sample_numbers = config["sample_numbers"]
 panel = config["panel"]
 
 #-----------------------------------------------------------------------------------------------------------------#
-# Utility Function For Getting Files
+# Utility Functions For Getting Files
 #-----------------------------------------------------------------------------------------------------------------#
 
 
@@ -120,6 +120,7 @@ rule bwa_align:
 		worksheet = config["seqID"],
 		flowcell = config["flowcell"],
 		centre = config["centre"],
+		samtools_temp_dir = config["samtools_temp_dir"]
 	shell:
 		"bwa mem "
 		"-t {threads} "
@@ -127,7 +128,7 @@ rule bwa_align:
 		"-R '@RG\\tID:{params.worksheet}.{params.flowcell}.{wildcards.lane}\\tCN:{params.centre}\\tSM:{wildcards.sample_name}\\tLB:{params.worksheet}\\tPL:ILLUMINA' "
 		"{params.ref} {input.fwd} {input.rev} | "
 		"samtools view -Sb - | "
-		"samtools sort -T {wildcards.sample_name}.temp -O bam > {output}"
+		"samtools sort -T {samtools_temp_dir} -O bam > {output}"
 
 # index bam file
 rule index_original_bam:
@@ -151,15 +152,16 @@ rule merge_and_remove_duplicates:
 		temp = config["picard_temp_dir"],
 		merge_duplicates_max_records = config["merge_duplicates_max_records"],
 		files = lambda wildcards, input: " I=".join(input.bams),
-		java_options = config["picard_memory_options"]
+		java_options = config["picard_memory_options"],
+		java_home = config["java_home"]
 	shell:
-		"picard {params.java_options} MarkDuplicates I={params.files} "
+		"export JAVA_HOME={params.java_home}; picard {params.java_options} MarkDuplicates I={params.files} "
 		"O={output.bam} "
-        "METRICS_FILE={output.metrics} "
+		"METRICS_FILE={output.metrics} "
 		"CREATE_INDEX=true "
-        "MAX_RECORDS_IN_RAM={params.merge_duplicates_max_records} "
-        "VALIDATION_STRINGENCY=SILENT "
-        "TMP_DIR={params.temp} "
+		"MAX_RECORDS_IN_RAM={params.merge_duplicates_max_records} "
+		"VALIDATION_STRINGENCY=SILENT "
+		"TMP_DIR={params.temp} "
 
 
 #-----------------------------------------------------------------------------------------------------------------#
@@ -175,9 +177,11 @@ rule create_interval_file:
 		capture = "output/config/" + Path(config["capture_bed_file"]).name.split(".")[0] + ".interval_list",
 		target = "output/config/" + Path(config["primary_bed_file"]).name.split(".")[0] + ".interval_list"
 	params:
-		sequence_dict = config["reference_sequence_dict"]
+		sequence_dict = config["reference_sequence_dict"],
+		java_home = config["java_home"]
 	shell:
 		"""
+		export JAVA_HOME={params.java_home}
 		picard BedToIntervalList I={input.capture} O={output} SD={params.sequence_dict}
 		picard BedToIntervalList I={input.target} O={output} SD={params.sequence_dict}
 
@@ -190,9 +194,11 @@ rule collect_insert_size_metrics:
 		bam_index = "output/merged_bams/{sample_name}_{sample_number}_merged_nodups.bai"
 	output:
 		txt="output/qc_reports/insert_size_metrics/{sample_name}_{sample_number}_InsertSizeMetrics.txt",
-		pdf="output/qc_reports/insert_size_metrics/{sample_name}_{sample_number}_InsertSizeMetrics.pdf"	
+		pdf="output/qc_reports/insert_size_metrics/{sample_name}_{sample_number}_InsertSizeMetrics.pdf"
+	params:
+		java_home = config["java_home"]
 	shell:
-		"picard CollectInsertSizeMetrics I={input.bam} O={output.txt} HISTOGRAM_FILE={output.pdf}"
+		"export JAVA_HOME={params.java_home}; picard CollectInsertSizeMetrics I={input.bam} O={output.txt} HISTOGRAM_FILE={output.pdf}"
 
 
 # Collect some HS metrics using picard
@@ -205,9 +211,10 @@ rule collect_hs_metrics:
 	output:
 		"output/qc_reports/hs_metrics/{sample_name}_{sample_number}_HsMetrics.txt"
 	params:
-		ref = config["reference"]
+		ref = config["reference"],
+		java_home = config["java_home"]
 	shell:
-		"picard CollectHsMetrics I={input.bam} O={output} R={params.ref} "
+		"export JAVA_HOME={params.java_home}; picard CollectHsMetrics I={input.bam} O={output} R={params.ref} "
 		"BAIT_INTERVALS={input.intervals_capture} TARGET_INTERVALS={input.intervals_primary}"
 
 # Collect alignment summary metrics using picard
@@ -218,12 +225,10 @@ rule collect_alignment_metrics:
 	output:
 		"output/qc_reports/alignment_metrics/{sample_name}_{sample_number}_AlignmentSummaryMetrics.txt"
 	params:
-		ref = config["reference"]
+		ref = config["reference"],
+		java_home = config["java_home"]
 	shell:
-		"picard CollectAlignmentSummaryMetrics I={input.bam} O={output} R={params.ref}"
-
-
-
+		"export JAVA_HOME={params.java_home}; picard CollectAlignmentSummaryMetrics I={input.bam} O={output} R={params.ref}"
 
 rule multiqc:
 	input:
@@ -343,9 +348,10 @@ rule collect_vcfs:
 	output:
 		"output/jointvcf/{worksheet}_all_chr.vcf"
 	params:
-		files = lambda wildcards, input: " I=".join(input)
+		files = lambda wildcards, input: " I=".join(input),
+		java_home = config["java_home"]
 	shell:
-		"picard GatherVcfs "
+		"export JAVA_HOME={params.java_home}; picard GatherVcfs "
 		"I={params.files} "
 		"O={output}"
 

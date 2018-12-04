@@ -18,7 +18,8 @@ picard_temp_dir:
   /state/partition1/tmpdir
 fastqc_temp_dir:
   /state/partition1/tmpdir
-
+samtools_temp_dir:
+  /state/partition1/tmpdir
 
 # Threads to Use
 variant_evaluation_threads:
@@ -33,19 +34,21 @@ fastqc_threads:
   12
 
 
-# Java Options 
+# Java Options
+java_home: #activate conda environment and type which java - needed for cluster
+  /home/transfer/miniconda3/envs/nipd/bin/java
 gatk_hc_java_options:
-  -XX:GCTimeLimit=50 -XX:GCHeapFreeLimit=10 -Djava.io.tmpdir=/tmp/ -Xmx12g
+  -XX:GCTimeLimit=50 -XX:GCHeapFreeLimit=10 -Djava.io.tmpdir=/state/partition1/tmpdir -Xmx12g
 gatk_bqsr_java_options:
-  -XX:GCTimeLimit=50 -XX:GCHeapFreeLimit=10 -Djava.io.tmpdir=/tmp/ -Xmx4g
+  -XX:GCTimeLimit=50 -XX:GCHeapFreeLimit=10 -Djava.io.tmpdir=/state/partition1/tmpdir -Xmx4g
 gatk_analyse_covariates_java_options:
-  -XX:GCTimeLimit=50 -XX:GCHeapFreeLimit=10 -Djava.io.tmpdir=/tmp/ -Xmx2g
+  -XX:GCTimeLimit=50 -XX:GCHeapFreeLimit=10 -Djava.io.tmpdir=/state/partition1/tmpdir-Xmx2g
 gatk_variants_java_options:
-  -XX:GCTimeLimit=50 -XX:GCHeapFreeLimit=10 -Djava.io.tmpdir=/tmp/ -Xmx4g
+  -XX:GCTimeLimit=50 -XX:GCHeapFreeLimit=10 -Djava.io.tmpdir=/state/partition1/tmpdir -Xmx4g
 gatk_genomics_db_java_options:
-  -XX:GCTimeLimit=50 -XX:GCHeapFreeLimit=10 -Djava.io.tmpdir=/tmp/ -Xmx12g
+  -XX:GCTimeLimit=50 -XX:GCHeapFreeLimit=10 -Djava.io.tmpdir=/state/partition1/tmpdir -Xmx12g
 picard_memory_options:
-  -XX:GCTimeLimit=50 -XX:GCHeapFreeLimit=10 -Djava.io.tmpdir=/tmp/ -Xmx20g
+  -XX:GCTimeLimit=50 -XX:GCHeapFreeLimit=10 -Djava.io.tmpdir=/state/partition1/tmpdir -Xmx20g
 
 # Misc Settings
 # Max records in picard MarkDuplicates

@@ -63,7 +63,7 @@ To run locally cd into the directory containing the script and enter the followi
 
 To run on cluster enter the following command:
 
-`snakemake --jobs 1 --cluster "qsub -d /share/data/results/snakemake_test/" --directory /share/data/results/snakemake_test/ -s /share/data/results/snakemake_test/Snakefile `
+`snakemake --jobs 1 --cluster "qsub -V -d /share/data/results/snakemake_test/" --directory /share/data/results/snakemake_test/ -s /share/data/results/snakemake_test/Snakefile `
 
 ## Output
 
