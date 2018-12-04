@@ -182,8 +182,8 @@ rule create_interval_file:
 	shell:
 		"""
 		export JAVA_HOME={params.java_home}
-		picard BedToIntervalList I={input.capture} O={output} SD={params.sequence_dict}
-		picard BedToIntervalList I={input.target} O={output} SD={params.sequence_dict}
+		picard BedToIntervalList I={input.capture} O={output.capture} SD={params.sequence_dict}
+		picard BedToIntervalList I={input.target} O={output.target} SD={params.sequence_dict}
 
 		"""
 
@@ -255,7 +255,7 @@ rule split_bam_per_chromosome:
 		bam_index = "output/merged_bams/{sample_name}_{sample_number}_merged_nodups.bai"
 	output:
 		bams = expand("output/split_bams/{{sample_name}}_{{sample_number}}_merged_nodups_chr{chr}.bam", chr=chromosomes),
-		indexes = expand("output/split_bams/{{sample_name}}_{{sample_number}}_merged_nodups{chr}.bam.bai", chr=chromosomes)
+		indexes = expand("output/split_bams/{{sample_name}}_{{sample_number}}_merged_nodups_chr{chr}.bam.bai", chr=chromosomes)
 	params:
 		chromosomes = " ".join(chromosomes)
 	shell:
@@ -264,7 +264,7 @@ rule split_bam_per_chromosome:
 		for chr in {params.chromosomes}; do
 
 			samtools view {input.bam} $chr -b >  "output/split_bams/{wildcards.sample_name}_{wildcards.sample_number}_merged_nodups_chr"$chr".bam";
-			samtools index "output/split_bams/{wildcards.sample_name}_{wildcards.sample_number}_merged_nodups_chr"$chr".bam;
+			samtools index "output/split_bams/{wildcards.sample_name}_{wildcards.sample_number}_merged_nodups_chr"$chr".bam";
 
 		done
 
