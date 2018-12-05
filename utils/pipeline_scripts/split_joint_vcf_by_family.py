@@ -5,6 +5,16 @@ Would usually use a PED file for this, but NIPD samples do not fit into the PED 
 
 Usage: 
 
+python utils/pipeline_scripts/split_joint_vcf_by_family.py 
+		--input output/qfiltered_jointvcf_anno_selected/{worksheet}_all_chr_qfiltered_anno_selected.vcf
+		--config config/development_local.yaml
+		--ref /state/partition1/db/human/gatk/2.8/b37/human_g1k_v37.fasta
+		--output_dir output/family_vcfs 
+
+The config file should be formatted so that there is a SeqID file with the worksheet ID.
+
+This script is NOT designed to be used outside of the NIPD pipeline. 
+
 """
 
 import argparse
@@ -35,14 +45,13 @@ parser.add_argument('--ref', type=str, nargs=1,required=True,
 				help='The reference genome location.')
 parser.add_argument('--output_dir', type=str, nargs=1,required=True,
 				help='The output directory to put the output files in.')
-args = parser.parse_args()
 
+args = parser.parse_args()
 
 config_dict = parse_config(args.config[0])
 
 # Get worksheet ID from input
-worksheet_id = Path(args.input[0]).name
-worksheet_id = worksheet_id.split('_')[0]
+worksheet_id = config_dict['seqID']
 
 
 # Get relevant sample names for each family
@@ -64,7 +73,7 @@ for family in config_dict['families'].keys():
 
 	sample_arguments = ('-sn ' +  ' -sn '.join(family_samples))
 
-	output_file = '{output_dir}/{worksheet}_qfiltered_selected_{FAMID}.vcf'.format(
+	output_file = '{output_dir}/{worksheet}_all_chr_qfiltered_anno_selected_{FAMID}.vcf'.format(
 		output_dir = args.output_dir[0],
 		worksheet=worksheet_id,
 		FAMID = family

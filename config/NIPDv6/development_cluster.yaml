@@ -7,11 +7,11 @@ reference:
 dbsnp_vcf:
   /data/results/db/human/gatk/2.8/b37/dbsnp_138.b37_new.vcf.gz
 gene_bed_file:
-  /data/results/181129_NB551415_0005_AHWW37BGX7/NIPD1/config/NIPDv6/beds/NIPDv6_genes.bed
+  /data/results/181129_NB551415_0005_AHWW37BGX7/NIPD1/config/beds/NIPDv6_genes.bed
 capture_bed_file:
- /data/results/181129_NB551415_0005_AHWW37BGX7/NIPD1/config/NIPDv6/beds/NIPDv6_capture_targets.bed
+ /data/results/181129_NB551415_0005_AHWW37BGX7/NIPD1/config/beds/NIPDv6_capture_targets.bed
 primary_bed_file:
-  /data/results/181129_NB551415_0005_AHWW37BGX7/NIPD1/config/NIPDv6/beds/NIPDv6_primary_targets.bed
+  /data/results/181129_NB551415_0005_AHWW37BGX7/NIPD1/config/beds/NIPDv6_primary_targets.bed
 reference_sequence_dict:
   /data/db/human/mappers/b37/bwa/human_g1k_v37.dict
 picard_temp_dir:
@@ -30,8 +30,6 @@ fastq_screen_threads:
   12
 fastqc_threads:
   12
-mosdepth_threads:
-  2
 
 
 # Java Options
@@ -54,7 +52,7 @@ picard_memory_options:
 # Max records in picard MarkDuplicates
 merge_duplicates_max_records:
   2000000
-# Chromsomes to to scatter gather variant calling on
+# chromsomes to to scatter gather on
 chromosomes:
   ['7', '9', '16', 'X']
 interval_padding_haplotype_caller:

@@ -1,6 +1,8 @@
 """
 Pipeline for single gene Non Invasive Prenatal Diagnosis
 
+See readme for details
+
 """
 from pathlib import Path 
 
@@ -9,16 +11,23 @@ from pathlib import Path
 # Configuration variables
 #-----------------------------------------------------------------------------------------------------------------#
 
-config_location = "config/development_local.yaml"
+# Which YAMl config to use
+config_location = "config/NIPDv6/development_local.yaml"
+
 configfile: config_location
+
+# Worksheet ID
 worksheet = config["seqID"]
 
+# Get all family IDs from config file
 families = config["families"].keys()
 
-sample, name, lanes = glob_wildcards("{sample_name}/{sample_number}_{lane}_R1_001.fastq.gz")
 
+# How many lanes do we have?
+sample, name, lanes = glob_wildcards("{sample_name}/{sample_number}_{lane}_R1_001.fastq.gz")
 lanes =  list((set(lanes)))
 
+# Get other data from config file
 chromosomes = config["chromosomes"]
 sample_names = config["samples"]
 sample_numbers = config["sample_numbers"]
@@ -49,7 +58,7 @@ def get_fastqc(wildcards):
 # Main pipeline
 #-----------------------------------------------------------------------------------------------------------------#
 
-
+# All function pulls all rules together
 rule all:
 	input:
 		expand("output/family_csvs/{worksheet}_all_chr_qfiltered_anno_selected_{FAMID}.csv", worksheet = worksheet, FAMID = families),
@@ -130,7 +139,7 @@ rule bwa_align:
 		"samtools view -Sb - | "
 		"samtools sort -T {params.samtools_temp_dir} -O bam > {output}"
 
-# index bam file
+# Index bam file
 rule index_original_bam:
 	input:
 		"output/alignments/{sample_name}_{sample_number}_{lane}.bam"
@@ -139,7 +148,7 @@ rule index_original_bam:
 	shell:
 		"samtools index {input}"
 
-#Merge the bams and mark duplicates
+# Merge the bams and mark duplicates
 rule merge_and_remove_duplicates:
 	input:
 		bams = expand("output/alignments/{{sample_name}}_{{sample_number}}_{lane}.bam", lane=lanes),
@@ -147,7 +156,7 @@ rule merge_and_remove_duplicates:
 	output:
 		bam = "output/merged_bams/{sample_name}_{sample_number}_merged_nodups.bam",
 		index = "output/merged_bams/{sample_name}_{sample_number}_merged_nodups.bai",
-		metrics = "output/qc_reports/{sample_name}_{sample_number}_MarkDuplicatesMetrics.txt"
+		metrics = "output/qc_reports/mark_duplicates/{sample_name}_{sample_number}_MarkDuplicatesMetrics.txt"
 	params:
 		temp = config["picard_temp_dir"],
 		merge_duplicates_max_records = config["merge_duplicates_max_records"],
@@ -230,45 +239,48 @@ rule collect_alignment_metrics:
 	shell:
 		"export JAVA_HOME={params.java_home}; picard CollectAlignmentSummaryMetrics I={input.bam} O={output} R={params.ref}"
 
+# Calculate per base and region coverage with mosdepth
+rule get_coverage:
+	input:
+		bam = "output/merged_bams/{sample_name}_{sample_number}_merged_nodups.bam",
+		bam_index = "output/merged_bams/{sample_name}_{sample_number}_merged_nodups.bai"
+	output:
+		"output/qc_reports/depth/{sample_name}_{sample_number}.mosdepth.global.dist.txt",
+		"output/qc_reports/depth/{sample_name}_{sample_number}.mosdepth.region.dist.txt",
+		"output/qc_reports/depth/{sample_name}_{sample_number}.per-base.bed.gz",
+		"output/qc_reports/depth/{sample_name}_{sample_number}.regions.bed.gz",
+		"output/qc_reports/depth/{sample_name}_{sample_number}.thresholds.bed.gz"
+	params:
+		bed = config["capture_bed_file"]
+	threads:
+		config["mosdepth_threads"]
+	shell:
+		"mosdepth --by {config.bed} "
+		"--threads {threads} "
+		"--thresholds 30,50,100,200 "
+		"output/qc_reports/depth/{wildcards.sample_name}_{wildcards.sample_number} {input.bam}"
+	
+# Multiqc to compile all qc data into one file
 rule multiqc:
 	input:
 		insert_size_metrics =  expand("output/qc_reports/insert_size_metrics/{sample_name}_{sample_number}_InsertSizeMetrics.txt", zip, sample_name=sample_names, sample_number=sample_numbers),
 		hs_metrics_metrics = expand("output/qc_reports/hs_metrics/{sample_name}_{sample_number}_HsMetrics.txt", zip, sample_name=sample_names, sample_number=sample_numbers),
 		alignment_metrics = expand("output/qc_reports/alignment_metrics/{sample_name}_{sample_number}_AlignmentSummaryMetrics.txt", zip, sample_name=sample_names, sample_number=sample_numbers),
-		fastqc = get_fastqc
+		mark_duplicate_metrics = expand("output/qc_reports/mark_duplicates/{sample_name}_{sample_number}_MarkDuplicatesMetrics.txt", zip, sample_name=sample_names, sample_number=sample_numbers),
+		depth = expand("output/qc_reports/depth/{sample_name}_{sample_number}.thresholds.bed.gz", zip, sample_name=sample_names, sample_number=sample_numbers ),
+		fastqc = get_fastqc,
 	output:
 		html = "output/qc_reports/multiqc/" + worksheet + ".html",
 		data = directory("output/qc_reports/multiqc/" + worksheet + "_data")
 	params:
 		worksheet = worksheet
 	shell:
-		"multiqc --filename {params.worksheet} --outdir output/qc_reports/multiqc/"
+		"multiqc --filename {params.worksheet} --outdir output/qc_reports/multiqc/ output/qc_reports"
 
 #-----------------------------------------------------------------------------------------------------------------#
 # SNP and Small Indel Calling with GATK Haplotype Caller
 #-----------------------------------------------------------------------------------------------------------------#
 
-# Scatter bam file per chromosome for variant calling
-rule split_bam_per_chromosome:
-	input:
-		bam = "output/merged_bams/{sample_name}_{sample_number}_merged_nodups.bam",
-		bam_index = "output/merged_bams/{sample_name}_{sample_number}_merged_nodups.bai"
-	output:
-		bams = expand("output/split_bams/{{sample_name}}_{{sample_number}}_merged_nodups_chr{chr}.bam", chr=chromosomes),
-		indexes = expand("output/split_bams/{{sample_name}}_{{sample_number}}_merged_nodups_chr{chr}.bam.bai", chr=chromosomes)
-	params:
-		chromosomes = " ".join(chromosomes)
-	shell:
-		"""
-		# Split a bam by chromosome
-		for chr in {params.chromosomes}; do
-
-			samtools view {input.bam} $chr -b >  "output/split_bams/{wildcards.sample_name}_{wildcards.sample_number}_merged_nodups_chr"$chr".bam";
-			samtools index "output/split_bams/{wildcards.sample_name}_{wildcards.sample_number}_merged_nodups_chr"$chr".bam";
-
-		done
-
-		"""
 
 # Sort ROI bed for splitting by bedextract
 rule sort_capture_bed:
@@ -294,8 +306,8 @@ rule split_bed_by_chromosome:
 # Create GVCF using Haplotype Caller for each sample chromosome combination
 rule create_gvcfs:
 	input:
-		bam_file = "output/split_bams/{sample_name}_{sample_number}_merged_nodups_chr{chr}.bam",
-		bam_index= "output/split_bams/{sample_name}_{sample_number}_merged_nodups_chr{chr}.bam.bai",
+		bam_file = "output/merged_bams/{sample_name}_{sample_number}_merged_nodups.bam",
+		bam_index= "output/merged_bams/{sample_name}_{sample_number}_merged_nodups.bai",
 		bed = "output/config/split_capture_bed/{chr}.bed"
 	output:
 		gvcf_file = "output/gvcfs/{sample_name}_{sample_number}_chr{chr}.g.vcf"
@@ -314,7 +326,7 @@ rule create_gvcfs:
 		"--interval-padding {params.padding}"
 
 
-# consolidate all samples into a genomics db for joint genotyping
+# Consolidate all samples into a genomics db for joint genotyping
 rule create_genomics_db:
 	input:
 		gvcfs = expand("output/gvcfs/{sample_name}_{sample_number}_chr{{chr}}.g.vcf" , zip, sample_name=sample_names, sample_number=sample_numbers),
@@ -333,7 +345,7 @@ rule create_genomics_db:
 		"--interval-padding {params.padding}"
 
 
-#genotype the gvcfs and produce a joint vcf
+# Genotype the gvcfs and produce a joint vcf
 rule genotype_gvcfs:
 	input:
 		db = directory("output/genomicdbs/{worksheet}_chr{chr}"),
@@ -352,7 +364,7 @@ rule genotype_gvcfs:
 		"-L {input.bed} "
 		"--interval-padding {params.padding} "
 
-# combine the chromsome vcfs into one final vcf with all samples and all chromosomes
+# Combine the chromsome vcfs into one final vcf with all samples and all chromosomes
 rule collect_vcfs:
 	input:
 		expand("output/jointvcf_per_chr/{{worksheet}}_chr{chr}.vcf", chr= chromosomes)
@@ -365,6 +377,8 @@ rule collect_vcfs:
 		"export JAVA_HOME={params.java_home}; picard GatherVcfs "
 		"I={params.files} "
 		"O={output}"
+
+
 
 #-----------------------------------------------------------------------------------------------------------------#
 # Filter Variants on Quality (Hard Filtering)
@@ -396,7 +410,7 @@ rule hard_filter_vcf:
 		"--filter-expression 'MQRankSum < {params.min_MQRankSum}' --filter-name 'LOW_MQRankSum' "
 		"--filter-expression 'ReadPosRankSum < {params.min_ReadPosRankSum}' --filter-name 'LOW_ReadPosRankSum' "
 
-# compress and index vcf so we can annotate with gene name
+# Compress and index vcf so we can annotate with gene name
 rule compress_and_index_vcf:
 	input:
 		"output/qfiltered_jointvcf/{worksheet}_all_chr_qfiltered.vcf"
@@ -407,7 +421,7 @@ rule compress_and_index_vcf:
 		"bgzip {input} && tabix {output.vcf}"
 
 
-# compress and index bedfile so we can use bcftools to annotate with gene
+# Compress and index bedfile so we can use bcftools to annotate with gene
 rule compress_and_index_bed_file:
 	input:
 		config["gene_bed_file"]
@@ -439,7 +453,7 @@ rule select_relevant_variants:
 	input:
 		vcf = "output/qfiltered_jointvcf_anno/{worksheet}_all_chr_qfiltered_anno.vcf",
 	output:
-		"output/qfiltered_jointvcf_anno/{worksheet}_all_chr_qfiltered_anno_selected.vcf"
+		"output/qfiltered_jointvcf_anno_selected/{worksheet}_all_chr_qfiltered_anno_selected.vcf"
 	params:
 		ref = config["reference"]
 	shell:
@@ -454,7 +468,7 @@ rule select_relevant_variants:
 # Split each vcf by family as specified in the config file
 rule split_vcf_by_family:
 	input:
-		"output/qfiltered_jointvcf_anno/{worksheet}_all_chr_qfiltered_anno_selected.vcf"
+		"output/qfiltered_jointvcf_anno_selected/{worksheet}_all_chr_qfiltered_anno_selected.vcf"
 	output:
 		expand("output/family_vcfs/{{worksheet}}_all_chr_qfiltered_anno_selected_{FAMID}.vcf", FAMID=config['families'].keys())
 	params:
@@ -467,7 +481,7 @@ rule split_vcf_by_family:
 		"--ref {params.ref} "
 		"--output_dir output/family_vcfs "
 
-#Create family CSVs from VCFs
+# Create family CSVs from VCFs
 rule create_family_csv:
 	input:
 		"output/family_vcfs/{worksheet}_all_chr_qfiltered_anno_selected_{FAMID}.vcf"

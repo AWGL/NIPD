@@ -20,11 +20,11 @@ picard_temp_dir:
   /tmp/
 fastqc_temp_dir:
   /tmp/
+samtools_temp_dir:
+  /tmp/
 
 
 # Threads to Use
-variant_evaluation_threads:
-  1
 bwa_threads:
   1
 fastp_threads:
@@ -32,6 +32,8 @@ fastp_threads:
 fastq_screen_threads:
   2
 fastqc_threads:
+  2
+mosdepth_threads:
   2
 
 
@@ -59,6 +61,13 @@ chromosomes:
   ['7', '9', '16', 'X']
 interval_padding_haplotype_caller:
   100
+samples:
+  [14M01888,14M02709]
+sample_numbers:
+  [S1, S2]
+
+
+
 
 # Run Level Information
 seqID:
@@ -99,58 +108,7 @@ families:
     analysis_required: X-linked
     members:
       mother: 14M01888
-      plasma: F1-15
+      plasma: null
       proband: 14M02709
       father: null
-  FAM002:
-    analysis_required: X-linked
-    members:
-      mother: 14M01888
-      plasma: F2-10
-      proband: 14M02709
-      father: null
-  FAM003:
-    analysis_required: X-linked
-    members:
-      mother: 14M01888
-      plasma: F3-8
-      proband: 14M02709
-      father: null
-  FAM004:
-    analysis_required: X-linked
-    members:
-      mother: 14M01888
-      plasma: F4-5
-      proband: 14M02709
-      father: null
-  FAM005:
-    analysis_required: X-linked
-    members:
-      mother: 14M01888
-      plasma: F5-2
-      proband: 14M02709
-      father: null
-  FAM006:
-    analysis_required: X-linked
-    members:
-      mother: null
-      plasma: 16M96501
-      proband: null
-      father: null
-  FAM007:
-    analysis_required: X-linked
-    members:
-      mother: null
-      plasma: 16M96867
-      proband: null
-      father: null
-  FAM008:
-    analysis_required: X-linked
-    members:
-      mother: 14M01888
-      plasma: F5-2-DIL
-      proband: 14M02709
-      father: null
-
-
-
+  
