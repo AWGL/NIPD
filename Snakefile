@@ -1,7 +1,7 @@
 """
 Pipeline for single gene Non Invasive Prenatal Diagnosis
 
-See readme for details
+See readme.md for details
 
 """
 from pathlib import Path 
@@ -21,7 +21,6 @@ worksheet = config["seqID"]
 
 # Get all family IDs from config file
 families = config["families"].keys()
-
 
 # How many lanes do we have?
 sample, name, lanes = glob_wildcards("{sample_name}/{sample_number}_{lane}_R1_001.fastq.gz")
@@ -255,7 +254,7 @@ rule get_coverage:
 	threads:
 		config["mosdepth_threads"]
 	shell:
-		"mosdepth --by {config.bed} "
+		"mosdepth --by {params.bed} "
 		"--threads {threads} "
 		"--thresholds 30,50,100,200 "
 		"output/qc_reports/depth/{wildcards.sample_name}_{wildcards.sample_number} {input.bam}"
@@ -381,7 +380,7 @@ rule collect_vcfs:
 
 
 #-----------------------------------------------------------------------------------------------------------------#
-# Filter Variants on Quality (Hard Filtering)
+# Filter and Annotate Variants
 #-----------------------------------------------------------------------------------------------------------------#
 
 # Use hard filtering on quality attributes
@@ -481,7 +480,7 @@ rule split_vcf_by_family:
 		"--ref {params.ref} "
 		"--output_dir output/family_vcfs "
 
-# Create family CSVs from VCFs
+# Create family CSVs from VCFs ready for SPRT analysis
 rule create_family_csv:
 	input:
 		"output/family_vcfs/{worksheet}_all_chr_qfiltered_anno_selected_{FAMID}.vcf"

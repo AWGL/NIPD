@@ -9,11 +9,11 @@ dbsnp_vcf:
 1000k_high_confidence_snps:
   /Users/josephhalstead/Documents/genomics_resources/snps/1000G_phase1.snps.high_confidence.b37.vcf
 gene_bed_file:
-  /Users/josephhalstead/Documents/NIPD/NIPD/config/beds/NIPDv6_genes.bed
+  /Users/josephhalstead/Documents/NIPD/NIPD/config/NIPDv6/beds/NIPDv6_genes.bed
 capture_bed_file:
-  /Users/josephhalstead/Documents/NIPD/NIPD/config/beds/NIPDv6_capture_targets.bed
+  /Users/josephhalstead/Documents/NIPD/NIPD/config/NIPDv6/beds/NIPDv6_capture_targets.bed
 primary_bed_file:
-  /Users/josephhalstead/Documents/NIPD/NIPD/config/beds/NIPDv6_primary_targets.bed
+  /Users/josephhalstead/Documents/NIPD/NIPD/config/NIPDv6/beds/NIPDv6_primary_targets.bed
 reference_sequence_dict:
   /Users/josephhalstead/Documents/genomics_resources/refs/human_g1k_v37.dict
 picard_temp_dir:
