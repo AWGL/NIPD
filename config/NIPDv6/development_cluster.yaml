@@ -9,7 +9,7 @@ dbsnp_vcf:
 gene_bed_file:
   /data/results/181129_NB551415_0005_AHWW37BGX7/NIPD1/config/NIPDv6/beds/NIPDv6_genes.bed
 capture_bed_file:
-  /data/results/181129_NB551415_0005_AHWW37BGX7/NIPD1/config/NIPDv6/beds/NIPDv6/NIPDv6_capture_targets.bed
+  /data/results/181129_NB551415_0005_AHWW37BGX7/NIPD1/config/NIPDv6/beds/NIPDv6_capture_targets.bed
 primary_bed_file:
   /data/results/181129_NB551415_0005_AHWW37BGX7/NIPD1/config/NIPDv6/beds/NIPDv6_primary_targets.bed
 reference_sequence_dict:
