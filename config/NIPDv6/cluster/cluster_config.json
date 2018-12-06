@@ -7,17 +7,17 @@
     "create_gvcfs" :
     {
         "walltime" : "6:00:00",
-        "ncpus" : 3
+        "ncpus" : 4
     },
     "create_genomics_db" :
     {
         "walltime" : "6:00:00",
-        "ncpus" : 3
+        "ncpus" : 4
     },
     "genotype_gvcfs" :
     {
         "walltime" : "6:00:00",
-        "ncpus" : 3
+        "ncpus" : 4
     },
 
 }

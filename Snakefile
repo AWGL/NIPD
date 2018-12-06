@@ -312,14 +312,12 @@ rule create_gvcfs:
 		gvcf_file = "output/gvcfs/{sample_name}_{sample_number}_chr{chr}.g.vcf"
 	params:
 		ref = config["reference"],
-		dbsnp_vcf = config['dbsnp_vcf'],
 		padding = config['interval_padding_haplotype_caller'],
 		java_options = config['gatk_hc_java_options']
 	shell:
 		"gatk --java-options '{params.java_options}' HaplotypeCaller -R {params.ref} "
 		"-I {input.bam_file} "
 		"--emit-ref-confidence GVCF "
-		"--dbsnp {params.dbsnp_vcf} "
 		"-O {output} "
 		"-L {input.bed} "
 		"--interval-padding {params.padding}"
