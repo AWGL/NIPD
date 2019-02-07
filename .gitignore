@@ -4,3 +4,5 @@ input/
 14M02709/
 .snakemake/
 output/
+utils/.ipynb_checkpoints
+utils/.ipynb_checkpoints/*
