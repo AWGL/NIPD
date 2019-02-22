@@ -73,8 +73,8 @@ rule fastp:
 	output:
 		html = "output/qc_reports/fastp/{sample_name}_{sample_number}_{lane}_fastp.html",
 		json = "output/qc_reports/fastp/{sample_name}_{sample_number}_{lane}_fastp.json",
-		fwd = "output/qfiltered_reads/{sample_name}_{sample_number}_{lane}_R1_001.qfilter.fastq.gz",
-		rev = "output/qfiltered_reads/{sample_name}_{sample_number}_{lane}_R2_001.qfilter.fastq.gz"
+		fwd = temp("output/qfiltered_reads/{sample_name}_{sample_number}_{lane}_R1_001.qfilter.fastq.gz"),
+		rev = temp("output/qfiltered_reads/{sample_name}_{sample_number}_{lane}_R2_001.qfilter.fastq.gz")
 	threads:
 		config["fastp_threads"]
 	shell:
@@ -84,7 +84,6 @@ rule fastp:
 		"-O {output.rev} "
 		"-h {output.html} "
 		"-j {output.json} "
-		"--cut_by_quality3 "
 		"--detect_adapter_for_pe "
 		"-w {threads}"
 
@@ -121,7 +120,7 @@ rule bwa_align:
 		fwd = "output/qfiltered_reads/{sample_name}_{sample_number}_{lane}_R1_001.qfilter.fastq.gz",
 		rev = "output/qfiltered_reads/{sample_name}_{sample_number}_{lane}_R2_001.qfilter.fastq.gz"
 	output:
-		"output/alignments/{sample_name}_{sample_number}_{lane}.bam"
+		temp("output/alignments/{sample_name}_{sample_number}_{lane}.bam")
 	threads:
 		config["bwa_threads"]
 	params:
@@ -310,7 +309,8 @@ rule create_gvcfs:
 		bam_index= "output/merged_bams/{sample_name}_{sample_number}_merged_nodups.bai",
 		bed = "output/config/split_capture_bed/{chr}.bed"
 	output:
-		gvcf_file = "output/gvcfs/{sample_name}_{sample_number}_chr{chr}.g.vcf"
+		gvcf_file = temp("output/gvcfs/{sample_name}_{sample_number}_chr{chr}.g.vcf")
+		gvcf_index = temp("output/gvcfs/{sample_name}_{sample_number}_chr{chr}.g.vcf.idx")
 	params:
 		ref = config["reference"],
 		padding = config['interval_padding_haplotype_caller'],
@@ -330,7 +330,7 @@ rule create_genomics_db:
 		gvcfs = expand("output/gvcfs/{sample_name}_{sample_number}_chr{{chr}}.g.vcf" , zip, sample_name=sample_names, sample_number=sample_numbers),
 		bed = "output/config/split_capture_bed/{chr}.bed"
 	output:
-		directory("output/genomicdbs/{worksheet}_chr{chr}")
+		temp(directory("output/genomicdbs/{worksheet}_chr{chr}"))
 	params:
 		files = lambda wildcards, input: " -V ".join(input.gvcfs),
 		java_options = config["gatk_genomics_db_java_options"],
@@ -349,7 +349,8 @@ rule genotype_gvcfs:
 		db = directory("output/genomicdbs/{worksheet}_chr{chr}"),
 		bed = "output/config/split_capture_bed/{chr}.bed"
 	output:
-		"output/jointvcf_per_chr/{worksheet}_chr{chr}.vcf"
+		vcf = temp("output/jointvcf_per_chr/{worksheet}_chr{chr}.vcf"),
+		index = temp("output/jointvcf_per_chr/{worksheet}_chr{chr}.vcf,idx"),
 	params:
 		ref = config["reference"],
 		java_options = config['gatk_hc_java_options'],
@@ -358,7 +359,7 @@ rule genotype_gvcfs:
 		"gatk --java-options '{params.java_options}'  GenotypeGVCFs -R {params.ref} "
 		"-V gendb://{input.db} "
 		"-G StandardAnnotation "
-		"-O {output} "
+		"-O {output.vcf} "
 		"-L {input.bed} "
 		"--interval-padding {params.padding} "
 
@@ -367,14 +368,15 @@ rule collect_vcfs:
 	input:
 		expand("output/jointvcf_per_chr/{{worksheet}}_chr{chr}.vcf", chr= chromosomes)
 	output:
-		"output/jointvcf/{worksheet}_all_chr.vcf"
+		vcf = temp("output/jointvcf/{worksheet}_all_chr.vcf"),
+		index = temp("output/jointvcf/{worksheet}_all_chr.vcf.idx")
 	params:
-		files = lambda wildcards, input: " I=".join(input),
+		files = lambda wildcards, input: " I=".join(input.vcf),
 		java_home = config["java_home"]
 	shell:
 		"export JAVA_HOME={params.java_home}; picard GatherVcfs "
 		"I={params.files} "
-		"O={output}"
+		"O={output.vcf}"
 
 
 
@@ -387,9 +389,11 @@ rule collect_vcfs:
 # for more information on the values chosen here.
 rule hard_filter_vcf:
 	input:
-		"output/jointvcf/{worksheet}_all_chr.vcf"
+		vcf = "output/jointvcf/{worksheet}_all_chr.vcf",
+		index = "output/jointvcf/{worksheet}_all_chr.vcf.idx",
 	output:
-		"output/qfiltered_jointvcf/{worksheet}_all_chr_qfiltered.vcf"
+		vcf = "output/qfiltered_jointvcf/{worksheet}_all_chr_qfiltered.vcf",
+		index = "output/qfiltered_jointvcf/{worksheet}_all_chr_qfiltered.vcf.idx"
 	params:
 		ref = config["reference"],
 		min_QD = config['min_QD'],
@@ -399,8 +403,8 @@ rule hard_filter_vcf:
 		min_MQRankSum = config['min_MQRankSum'],
 		min_ReadPosRankSum = config['min_ReadPosRankSum']
 	shell:
-		"gatk VariantFiltration -R {params.ref} -O {output} "
-		"--variant {input} "
+		"gatk VariantFiltration -R {params.ref} -O {output.vcf} "
+		"--variant {input.vcf} "
 		"--filter-expression 'QD < {params.min_QD}' --filter-name 'LOW_QD' "
 		"--filter-expression 'FS > {params.max_FS}' --filter-name 'HIGH_FS' "
 		"--filter-expression 'SOR > {params.max_SOR}' --filter-name 'HIGH_SOR' "
@@ -413,8 +417,8 @@ rule compress_and_index_vcf:
 	input:
 		"output/qfiltered_jointvcf/{worksheet}_all_chr_qfiltered.vcf"
 	output:
-		vcf = "output/qfiltered_jointvcf/{worksheet}_all_chr_qfiltered.vcf.gz",
-		index = "output/qfiltered_jointvcf/{worksheet}_all_chr_qfiltered.vcf.gz.tbi"
+		vcf = temp("output/qfiltered_jointvcf/{worksheet}_all_chr_qfiltered.vcf.gz"),
+		index = temp("output/qfiltered_jointvcf/{worksheet}_all_chr_qfiltered.vcf.gz.tbi")
 	shell:
 		"bgzip {input} && tabix {output.vcf}"
 
