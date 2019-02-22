@@ -84,6 +84,8 @@ rule fastp:
 		"-O {output.rev} "
 		"-h {output.html} "
 		"-j {output.json} "
+		"--length_required 35 "
+		"--disable_quality_filtering "
 		"--detect_adapter_for_pe "
 		"-w {threads}"
 
@@ -126,14 +128,13 @@ rule bwa_align:
 	params:
 		ref = config["bwa_reference"],
 		worksheet = config["seqID"],
-		flowcell = config["flowcell"],
 		centre = config["centre"],
 		samtools_temp_dir = config["samtools_temp_dir"]
 	shell:
 		"bwa mem "
 		"-t {threads} "
 		"-M "
-		"-R '@RG\\tID:{params.worksheet}.{params.flowcell}.{wildcards.lane}\\tCN:{params.centre}\\tSM:{wildcards.sample_name}\\tLB:{params.worksheet}\\tPL:ILLUMINA' "
+		"-R '@RG\\tID:{params.worksheet}.{params.worksheet}.{wildcards.lane}\\tCN:{params.centre}\\tSM:{wildcards.sample_name}\\tLB:{params.worksheet}\\tPL:ILLUMINA' "
 		"{params.ref} {input.fwd} {input.rev} | "
 		"samtools view -Sb - | "
 		"samtools sort -T {params.samtools_temp_dir} -O bam > {output}"
@@ -309,7 +310,7 @@ rule create_gvcfs:
 		bam_index= "output/merged_bams/{sample_name}_{sample_number}_merged_nodups.bai",
 		bed = "output/config/split_capture_bed/{chr}.bed"
 	output:
-		gvcf_file = temp("output/gvcfs/{sample_name}_{sample_number}_chr{chr}.g.vcf")
+		gvcf_file = temp("output/gvcfs/{sample_name}_{sample_number}_chr{chr}.g.vcf"),
 		gvcf_index = temp("output/gvcfs/{sample_name}_{sample_number}_chr{chr}.g.vcf.idx")
 	params:
 		ref = config["reference"],
@@ -350,7 +351,7 @@ rule genotype_gvcfs:
 		bed = "output/config/split_capture_bed/{chr}.bed"
 	output:
 		vcf = temp("output/jointvcf_per_chr/{worksheet}_chr{chr}.vcf"),
-		index = temp("output/jointvcf_per_chr/{worksheet}_chr{chr}.vcf,idx"),
+		index = temp("output/jointvcf_per_chr/{worksheet}_chr{chr}.vcf.idx"),
 	params:
 		ref = config["reference"],
 		java_options = config['gatk_hc_java_options'],
@@ -366,7 +367,8 @@ rule genotype_gvcfs:
 # Combine the chromsome vcfs into one final vcf with all samples and all chromosomes
 rule collect_vcfs:
 	input:
-		expand("output/jointvcf_per_chr/{{worksheet}}_chr{chr}.vcf", chr= chromosomes)
+		vcf = expand("output/jointvcf_per_chr/{{worksheet}}_chr{chr}.vcf", chr= chromosomes),
+		index = expand("output/jointvcf_per_chr/{{worksheet}}_chr{chr}.vcf.idx", chr= chromosomes),
 	output:
 		vcf = temp("output/jointvcf/{worksheet}_all_chr.vcf"),
 		index = temp("output/jointvcf/{worksheet}_all_chr.vcf.idx")
