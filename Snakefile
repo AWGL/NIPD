@@ -275,7 +275,7 @@ rule multiqc:
 	params:
 		worksheet = worksheet
 	shell:
-		"multiqc --filename {params.worksheet} --outdir output/qc_reports/multiqc/ output/qc_reports"
+		"multiqc --filename {params.worksheet} --exclude fastp --outdir output/qc_reports/multiqc/ output/qc_reports"
 
 #-----------------------------------------------------------------------------------------------------------------#
 # SNP and Small Indel Calling with GATK Haplotype Caller
@@ -310,7 +310,7 @@ rule create_gvcfs:
 		bam_index= "output/merged_bams/{sample_name}_{sample_number}_merged_nodups.bai",
 		bed = "output/config/split_capture_bed/{chr}.bed"
 	output:
-		gvcf_file = temp("output/gvcfs/{sample_name}_{sample_number}_chr{chr}.g.vcf"),
+		gvcf = temp("output/gvcfs/{sample_name}_{sample_number}_chr{chr}.g.vcf"),
 		gvcf_index = temp("output/gvcfs/{sample_name}_{sample_number}_chr{chr}.g.vcf.idx")
 	params:
 		ref = config["reference"],
@@ -320,7 +320,7 @@ rule create_gvcfs:
 		"gatk --java-options '{params.java_options}' HaplotypeCaller -R {params.ref} "
 		"-I {input.bam_file} "
 		"--emit-ref-confidence GVCF "
-		"-O {output} "
+		"-O {output.gvcf} "
 		"-L {input.bed} "
 		"--interval-padding {params.padding}"
 
@@ -329,6 +329,7 @@ rule create_gvcfs:
 rule create_genomics_db:
 	input:
 		gvcfs = expand("output/gvcfs/{sample_name}_{sample_number}_chr{{chr}}.g.vcf" , zip, sample_name=sample_names, sample_number=sample_numbers),
+		gvcf_indexes = expand("output/gvcfs/{sample_name}_{sample_number}_chr{{chr}}.g.vcf.idx" , zip, sample_name=sample_names, sample_number=sample_numbers),
 		bed = "output/config/split_capture_bed/{chr}.bed"
 	output:
 		temp(directory("output/genomicdbs/{worksheet}_chr{chr}"))
