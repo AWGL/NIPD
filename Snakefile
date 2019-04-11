@@ -144,7 +144,7 @@ rule index_original_bam:
 	input:
 		"output/alignments/{sample_name}_{sample_number}_{lane}.bam"
 	output:
-		"output/alignments/{sample_name}_{sample_number}_{lane}.bam.bai"
+		temp("output/alignments/{sample_name}_{sample_number}_{lane}.bam.bai")
 	shell:
 		"samtools index {input}"
 
