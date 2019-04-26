@@ -62,7 +62,9 @@ def get_fastqc(wildcards):
 rule all:
 	input:
 		expand("output/family_csvs/{worksheet}_all_chr_qfiltered_anno_selected_{FAMID}.csv", worksheet = worksheet, FAMID = families),
-		expand("output/qc_reports/multiqc/{worksheet}.html", worksheet = worksheet)
+		expand("output/vep_family_csvs/{worksheet}_all_chr_qfiltered_anno_norm_vep_{FAMID}.csv", worksheet = worksheet, FAMID = families),
+		expand("output/qc_reports/multiqc/{worksheet}.html", worksheet = worksheet),
+		expand("output/qfiltered_jointvcf_anno_norm_vep/{worksheet}_all_chr_qfiltered_anno_norm_vep.vcf", worksheet=worksheet)
 
 
 # Run the fastp program to generate a read quality report and trim reads
@@ -239,26 +241,44 @@ rule collect_alignment_metrics:
 	shell:
 		"export JAVA_HOME={params.java_home}; picard CollectAlignmentSummaryMetrics I={input.bam} O={output} R={params.ref}"
 
-# Calculate per base and region coverage with mosdepth
-rule get_coverage:
+# Calculate per base coverage with sambamba
+rule get_per_base_coverage:
 	input:
 		bam = "output/merged_bams/{sample_name}_{sample_number}_merged_nodups.bam",
 		bam_index = "output/merged_bams/{sample_name}_{sample_number}_merged_nodups.bai"
 	output:
-		"output/qc_reports/depth/{sample_name}_{sample_number}.mosdepth.global.dist.txt",
-		"output/qc_reports/depth/{sample_name}_{sample_number}.mosdepth.region.dist.txt",
-		"output/qc_reports/depth/{sample_name}_{sample_number}.per-base.bed.gz",
-		"output/qc_reports/depth/{sample_name}_{sample_number}.regions.bed.gz",
-		"output/qc_reports/depth/{sample_name}_{sample_number}.thresholds.bed.gz"
+		"output/qc_reports/depth/{sample_name}_{sample_number}_per_base.coverage"
 	params:
 		bed = config["capture_bed_file"]
-	threads:
-		config["mosdepth_threads"]
 	shell:
-		"mosdepth --by {params.bed} "
-		"--threads {threads} "
-		"--thresholds 30,50,100,200 "
-		"output/qc_reports/depth/{wildcards.sample_name}_{wildcards.sample_number} {input.bam}"
+		"sambamba depth base "
+		"-L {params.bed} -z "
+		"{input.bam} > {output} "
+
+# Calculate exon coverage with sambamba
+rule get_exon_coverage:
+	input:
+		bam = "output/merged_bams/{sample_name}_{sample_number}_merged_nodups.bam",
+		bam_index = "output/merged_bams/{sample_name}_{sample_number}_merged_nodups.bai"
+	output:
+		"output/qc_reports/depth/{sample_name}_{sample_number}_exon.coverage"
+	params:
+		bed = config["exon_bed_file"]
+	shell:
+		"sambamba depth region "
+		"-L {params.bed} -T 30 -T 100 -T 200 -T 500 -T 750 -T 1000 "
+		"{input.bam} > {output} "
+
+# Relatedness Testing
+rule relatedness_test:
+	input:
+		"output/qfiltered_jointvcf_anno/{worksheet}_all_chr_qfiltered_anno.vcf"
+	output:
+		"output/qc_reports/relatedness/{worksheet}.relatedness2"
+	shell:
+		"vcftools --relatedness2 "
+		"--out output/qc_reports/relatedness/{wildcards.worksheet} "
+		"--vcf {input} "
 	
 # Multiqc to compile all qc data into one file
 rule multiqc:
@@ -267,8 +287,10 @@ rule multiqc:
 		hs_metrics_metrics = expand("output/qc_reports/hs_metrics/{sample_name}_{sample_number}_HsMetrics.txt", zip, sample_name=sample_names, sample_number=sample_numbers),
 		alignment_metrics = expand("output/qc_reports/alignment_metrics/{sample_name}_{sample_number}_AlignmentSummaryMetrics.txt", zip, sample_name=sample_names, sample_number=sample_numbers),
 		mark_duplicate_metrics = expand("output/qc_reports/mark_duplicates/{sample_name}_{sample_number}_MarkDuplicatesMetrics.txt", zip, sample_name=sample_names, sample_number=sample_numbers),
-		depth = expand("output/qc_reports/depth/{sample_name}_{sample_number}.thresholds.bed.gz", zip, sample_name=sample_names, sample_number=sample_numbers ),
+		base_depth = expand("output/qc_reports/depth/{sample_name}_{sample_number}_per_base.coverage", zip, sample_name=sample_names, sample_number=sample_numbers ),
+		exon_depth = expand("output/qc_reports/depth/{sample_name}_{sample_number}_exon.coverage", zip, sample_name=sample_names, sample_number=sample_numbers ),
 		fastqc = get_fastqc,
+		relatedness = expand("output/qc_reports/relatedness/{worksheet}.relatedness2", worksheet=worksheet)
 	output:
 		html = "output/qc_reports/multiqc/" + worksheet + ".html",
 		data = directory("output/qc_reports/multiqc/" + worksheet + "_data")
@@ -285,7 +307,7 @@ rule multiqc:
 # Sort ROI bed for splitting by bedextract
 rule sort_capture_bed:
 	input:
-		config["capture_bed_file"]
+		ancient(config["capture_bed_file"])
 	output:
 		"output/config/sorted_beds/{{panel}}_sorted.bed".format(panel=panel)
 	shell:
@@ -445,12 +467,81 @@ rule annotate_vcf_with_gene:
 		bed = "output/config/" + Path(config["gene_bed_file"]).name.split(".")[0] + ".bed.gz",
 		bed_index = "output/config/" + Path(config["gene_bed_file"]).name.split(".")[0] + ".bed.gz.tbi"
 	output:
-		vcf = "output/qfiltered_jointvcf_anno/{worksheet}_all_chr_qfiltered_anno.vcf",
+		vcf = "output/qfiltered_jointvcf_anno/{worksheet}_all_chr_qfiltered_anno.vcf"
 	shell:
 		"bcftools annotate -a {input.bed} "
 		"-c CHROM,FROM,TO,GENE "
 		"-h <(echo '##INFO=<ID=GENE,Number=1,Type=String,Description=\"Gene name\">') "
 		"{input.vcf} -o {output.vcf} "
+
+
+# Use vt to split multiallelics and normalise variants
+rule decompose_and_normalise:
+	input:
+		"output/qfiltered_jointvcf_anno/{worksheet}_all_chr_qfiltered_anno.vcf"
+	output:
+		temp("output/qfiltered_jointvcf_anno_norm/{worksheet}_all_chr_qfiltered_anno_norm.vcf")
+	params:
+		ref = config["reference"]
+	shell:
+		"cat {input} | "
+		"vt decompose -s - | "
+		"vt normalize -r {params.ref} - > {output}"
+
+# Annotate the GATK vcf using VEP
+rule annotate_gatk_vep:
+	input:
+		"output/qfiltered_jointvcf_anno_norm/{worksheet}_all_chr_qfiltered_anno_norm.vcf"
+	output:
+		vcf = "output/qfiltered_jointvcf_anno_norm_vep/{worksheet}_all_chr_qfiltered_anno_norm_vep.vcf",
+		summary = temp("output/qfiltered_jointvcf_anno_norm_vep/{worksheet}_all_chr_qfiltered_anno_norm_vep.vcf_summary.html"),
+		warnings = temp("output/qfiltered_jointvcf_anno_norm_vep/{worksheet}_all_chr_qfiltered_anno_norm_vep.vcf_warnings.txt")
+	params:
+		vep_cache = config["vep_cache_location"],
+		ref = config["reference"],
+		gnomad_genomes = config["gnomad_genomes"],
+		gnomad_exomes = config["gnomad_exomes"],
+	threads:
+		config["vep_threads"]
+	shell:
+		"vep --verbose "
+		"--format vcf "
+		"--everything "
+		"--fork {threads} "
+		"--species homo_sapiens "
+		"--assembly GRCh37  "
+		"--input_file {input}  "
+		"--output_file {output.vcf} "
+		"--force_overwrite "
+		"--cache "
+		"--dir  {params.vep_cache} "
+		"--fasta {params.ref} "
+		"--offline "
+		"--cache_version 94 "
+		"--no_escape "
+		"--shift_hgvs 1 "
+		"--vcf "
+		"--refseq "
+		"--flag_pick "
+		"--pick_order biotype,canonical,appris,tsl,ccds,rank,length "
+		"--exclude_predicted "
+		"--custom {params.gnomad_genomes},gnomADg,vcf,exact,0,AF_POPMAX "
+		"--custom {params.gnomad_exomes},gnomADe,vcf,exact,0,AF_POPMAX "
+
+# Create VEP Family CSVs
+rule convert_gatk_vep_vcf_to_csv_per_family:
+	input:
+		"output/qfiltered_jointvcf_anno_norm_vep/{worksheet}_all_chr_qfiltered_anno_norm_vep.vcf"
+	output:
+		expand("output/vep_family_csvs/{{worksheet}}_all_chr_qfiltered_anno_norm_vep_{FAMID}.csv", FAMID=config['families'].keys())
+	params:
+		config = config_location
+	shell:
+		"python utils/pipeline_scripts/make_gatk_vep_csv.py "
+		"--input {input} "
+		"--config {params.config} "
+		"--output_dir output/vep_family_csvs/ "
+		"--output_prefix {wildcards.worksheet}_all_chr_qfiltered_anno_norm_vep"
 
 
 # Select only Biallelic SNPs which pass filtering i.e. exclude indels and multialleleics and fails
@@ -485,6 +576,7 @@ rule split_vcf_by_family:
 		"--config {params.config} "
 		"--ref {params.ref} "
 		"--output_dir output/family_vcfs "
+		"--output_prefix {wildcards.worksheet}_all_chr_qfiltered_anno_selected"
 
 # Create family CSVs from VCFs ready for SPRT analysis
 rule create_family_csv:
@@ -504,6 +596,7 @@ rule create_family_csv:
 		"-F GENE "
 		"-GF GT "
 		"-GF AD "
-		"-GF DP"
+		"-GF DP "
+		"-GF GQ"
 
 

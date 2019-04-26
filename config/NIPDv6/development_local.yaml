@@ -1,21 +1,25 @@
 # Resource Locations
 
 bwa_reference:
-  /Users/josephhalstead/Documents/genomics_resources/bwa/human_g1k_v37.fasta
+  /home/joseph/Documents/genomic_resources/bwa/human_g1k_v37.fasta
 reference:
-  /Users/josephhalstead/Documents/genomics_resources/refs/human_g1k_v37.fasta
-dbsnp_vcf:
-  /Users/josephhalstead/Documents/genomics_resources/snps/gnomad.exomes.r2.0.1.sites.vcf.gz
-1000k_high_confidence_snps:
-  /Users/josephhalstead/Documents/genomics_resources/snps/1000G_phase1.snps.high_confidence.b37.vcf
+  /home/joseph/Documents/genomic_resources/reference_genomes/human_g1k_v37.fasta
 gene_bed_file:
-  /Users/josephhalstead/Documents/NIPD/NIPD/config/NIPDv6/beds/NIPDv6_genes.bed
+  /home/joseph/Documents/NIPD/NIPD/config/NIPDv6/beds/NIPDv6_genes.bed
 capture_bed_file:
-  /Users/josephhalstead/Documents/NIPD/NIPD/config/NIPDv6/beds/NIPDv6_capture_targets.bed
+  /home/joseph/Documents/NIPD/NIPD/config/NIPDv6/beds/NIPDv6_capture_targets.bed
 primary_bed_file:
-  /Users/josephhalstead/Documents/NIPD/NIPD/config/NIPDv6/beds/NIPDv6_primary_targets.bed
+  /home/joseph/Documents/NIPD/NIPD/config/NIPDv6/beds/NIPDv6_primary_targets.bed
+exon_bed_file:
+  /home/joseph/Documents/NIPD/NIPD/config/NIPDv6/beds/NIPDv6_exons_padded30.bed
 reference_sequence_dict:
-  /Users/josephhalstead/Documents/genomics_resources/refs/human_g1k_v37.dict
+  /home/joseph/Documents/genomic_resources/reference_genomes/human_g1k_v37.dict
+vep_cache_location:
+  /home/joseph/Documents/genomic_resources/vep/
+gnomad_exomes:
+   /home/joseph/Documents/genomic_resources/gnomad/gnomad.exomes.r2.0.1.sites.vcf.gz
+gnomad_genomes:
+   /home/joseph/Documents/genomic_resources/gnomad/gnomad.genomes.r2.0.1.sites.noVEP.vcf.gz
 picard_temp_dir:
   /tmp/
 fastqc_temp_dir:
@@ -30,16 +34,16 @@ bwa_threads:
 fastp_threads:
   1
 fastq_screen_threads:
-  2
+  1
 fastqc_threads:
-  2
-mosdepth_threads:
-  2
+  1
+vep_threads:
+  1
 
 
 # Java Options
 java_home:
-  /Users/josephhalstead/miniconda3/envs/nipd/bin/java
+  /home/joseph/miniconda3/envs/nipd/bin/java/
 gatk_hc_java_options:
   -XX:GCTimeLimit=50 -XX:GCHeapFreeLimit=10 -Djava.io.tmpdir=/tmp/ -Xmx12g
 gatk_bqsr_java_options:
@@ -61,17 +65,10 @@ chromosomes:
   ['7', '9', '16', 'X']
 interval_padding_haplotype_caller:
   100
-samples:
-  [14M01888,14M02709]
-sample_numbers:
-  [S1, S2]
-
-
-
 
 # Run Level Information
 seqID:
-  181129_NB551415_0005_AHWW37BGX7
+  190215_NB551415_0010_AH5772AFXY
 platform:
   ILLUMINA
 worklistId:
@@ -101,14 +98,12 @@ min_MQRankSum:
 min_ReadPosRankSum:
   -8.0
 
-
-
 families:
   FAM001:
     analysis_required: X-linked
     members:
-      mother: 14M01888
-      plasma: null
-      proband: 14M02709
-      father: null
+      mother: 15M06223
+      plasma: ffDNA28
+      proband: 15M01266
+      father: 15M06222
   

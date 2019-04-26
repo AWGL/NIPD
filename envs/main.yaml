@@ -16,6 +16,9 @@ dependencies:
 - bcftools = 1.9
 - multiqc = 1.6
 - mosdepth = 0.2.3 
+- ensembl-vep = 94.5
+- vt = 0.57721
+- sambamba = 0.6.9
 - r = 3.5.1
 - r-essentials = 1.7.0
 - r-ggplot2 = 3.1.0

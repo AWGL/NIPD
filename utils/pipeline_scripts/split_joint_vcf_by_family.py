@@ -45,13 +45,11 @@ parser.add_argument('--ref', type=str, nargs=1,required=True,
 				help='The reference genome location.')
 parser.add_argument('--output_dir', type=str, nargs=1,required=True,
 				help='The output directory to put the output files in.')
-
+parser.add_argument('--output_prefix', type=str, nargs=1,required=True,
+				help='The output file prefix.')
 args = parser.parse_args()
 
 config_dict = parse_config(args.config[0])
-
-# Get worksheet ID from input
-worksheet_id = config_dict['seqID']
 
 
 # Get relevant sample names for each family
@@ -73,9 +71,9 @@ for family in config_dict['families'].keys():
 
 	sample_arguments = ('-sn ' +  ' -sn '.join(family_samples))
 
-	output_file = '{output_dir}/{worksheet}_all_chr_qfiltered_anno_selected_{FAMID}.vcf'.format(
+	output_file = '{output_dir}/{prefix}_{FAMID}.vcf'.format(
 		output_dir = args.output_dir[0],
-		worksheet=worksheet_id,
+		prefix = args.output_prefix[0],
 		FAMID = family
 		)
 	

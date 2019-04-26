@@ -20,18 +20,20 @@ fastqc_temp_dir:
   /state/partition1/tmpdir
 samtools_temp_dir:
   /state/partition1/tmpdir
+vep_cache:
+  /share/data/db/human/vep/vep_cache
 
 # Threads to Use
 bwa_threads:
   12
 fastp_threads:
   12
-fastq_screen_threads:
-  12
 fastqc_threads:
   12
 mosdepth_threads:
   1
+vep_threads:
+  6
 
 # Java Options
 java_home: #activate conda environment and type which java - needed for cluster
