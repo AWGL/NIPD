@@ -98,12 +98,5 @@ min_MQRankSum:
 min_ReadPosRankSum:
   -8.0
 
-families:
-  FAM001:
-    analysis_required: X-linked
-    members:
-      mother: 15M06223
-      plasma: ffDNA28
-      proband: 15M01266
-      father: 15M06222
-  
+
+

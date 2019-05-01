@@ -12,7 +12,7 @@ from pathlib import Path
 #-----------------------------------------------------------------------------------------------------------------#
 
 # Which YAMl config to use
-config_location = "config/NIPDv6/development_local.yaml"
+config_location = "development_local.yaml"
 
 configfile: config_location
 
@@ -66,6 +66,10 @@ rule all:
 		expand("output/qc_reports/multiqc/{worksheet}.html", worksheet = worksheet),
 		expand("output/qfiltered_jointvcf_anno_norm_vep/{worksheet}_all_chr_qfiltered_anno_norm_vep.vcf", worksheet=worksheet)
 
+
+#-----------------------------------------------------------------------------------------------------------------#
+# Preprocessing and Read Level Quality Control
+#-----------------------------------------------------------------------------------------------------------------#
 
 # Run the fastp program to generate a read quality report and trim reads
 rule fastp:
@@ -136,7 +140,7 @@ rule bwa_align:
 		"bwa mem "
 		"-t {threads} "
 		"-M "
-		"-R '@RG\\tID:{params.worksheet}.{params.worksheet}.{wildcards.lane}\\tCN:{params.centre}\\tSM:{wildcards.sample_name}\\tLB:{params.worksheet}\\tPL:ILLUMINA' "
+		"-R '@RG\\tID:{params.worksheet}.{wildcards.lane}\\tCN:{params.centre}\\tSM:{wildcards.sample_name}\\tLB:{params.worksheet}\\tPL:ILLUMINA' "
 		"{params.ref} {input.fwd} {input.rev} | "
 		"samtools view -Sb - | "
 		"samtools sort -T {params.samtools_temp_dir} -O bam > {output}"
@@ -182,20 +186,16 @@ rule merge_and_remove_duplicates:
 # Create an interval file from the BED file for use in Picard tools such as CollectHsMetrics
 rule create_interval_file:
 	input:
-		capture = config["capture_bed_file"],
-		target = config["primary_bed_file"]
+		bed = ancient(config["roi_bed_file"]),
 	output:
-		capture = "output/config/" + Path(config["capture_bed_file"]).name.split(".")[0] + ".interval_list",
-		target = "output/config/" + Path(config["primary_bed_file"]).name.split(".")[0] + ".interval_list"
+		bed = temp("output/config/" + Path(config["roi_bed_file"]).name.split(".")[0] + ".interval_list"),
 	params:
 		sequence_dict = config["reference_sequence_dict"],
 		java_home = config["java_home"]
 	shell:
 		"""
 		export JAVA_HOME={params.java_home}
-		picard BedToIntervalList I={input.capture} O={output.capture} SD={params.sequence_dict}
-		picard BedToIntervalList I={input.target} O={output.target} SD={params.sequence_dict}
-
+		picard BedToIntervalList I={input.bed} O={output.bed} SD={params.sequence_dict}
 		"""
 
 # Collect some insert size metrics using Picard
@@ -217,8 +217,7 @@ rule collect_hs_metrics:
 	input:
 		bam = "output/merged_bams/{sample_name}_{sample_number}_merged_nodups.bam",
 		bam_index = "output/merged_bams/{sample_name}_{sample_number}_merged_nodups.bai",
-		intervals_capture = "output/config/" + Path(config["capture_bed_file"]).name.split(".")[0] + ".interval_list",
-		intervals_primary = "output/config/" + Path(config["primary_bed_file"]).name.split(".")[0] + ".interval_list",
+		intervals_capture = "output/config/" + Path(config["roi_bed_file"]).name.split(".")[0] + ".interval_list",
 	output:
 		"output/qc_reports/hs_metrics/{sample_name}_{sample_number}_HsMetrics.txt"
 	params:
@@ -226,7 +225,7 @@ rule collect_hs_metrics:
 		java_home = config["java_home"]
 	shell:
 		"export JAVA_HOME={params.java_home}; picard CollectHsMetrics I={input.bam} O={output} R={params.ref} "
-		"BAIT_INTERVALS={input.intervals_capture} TARGET_INTERVALS={input.intervals_primary}"
+		"BAIT_INTERVALS={input.intervals_capture} TARGET_INTERVALS={input.intervals_capture}"
 
 # Collect alignment summary metrics using picard
 rule collect_alignment_metrics:
@@ -249,10 +248,10 @@ rule get_per_base_coverage:
 	output:
 		"output/qc_reports/depth/{sample_name}_{sample_number}_per_base.coverage"
 	params:
-		bed = config["capture_bed_file"]
+		bed = config["padded_roi_bed_file"]
 	shell:
 		"sambamba depth base "
-		"-L {params.bed} -z "
+		"-L {params.bed} --min-coverage=0 "
 		"{input.bam} > {output} "
 
 # Calculate exon coverage with sambamba
@@ -266,8 +265,24 @@ rule get_exon_coverage:
 		bed = config["exon_bed_file"]
 	shell:
 		"sambamba depth region "
-		"-L {params.bed} -T 30 -T 100 -T 200 -T 500 -T 750 -T 1000 "
+		"-L {params.bed} -T 30 -T 100 -T 150 -T 200 -T 500 -T 750 -T 1000 "
 		"{input.bam} > {output} "
+
+# Get the coverage over each of the target snps
+rule get_snp_coverage:
+	input:
+		"output/qc_reports/depth/{sample_name}_{sample_number}_per_base.coverage"
+	output:
+		snp_coverage = "output/qc_reports/depth/{sample_name}_{sample_number}_snps.coverage",
+		per_base_bed = temp("output/qc_reports/depth/{sample_name}_{sample_number}_per_base.bed")
+	params:
+		snp_bed = config['snp_bed']
+	shell:
+		"""
+		tail {input} -n+2 | awk 'BEGIN {{ OFS =\"\\t\" }} {{print $1,$2,$2+1,$3}}' > {output.per_base_bed}
+		bedtools intersect -a {params.snp_bed} -b {output.per_base_bed} -loj > {output.snp_coverage}
+	
+		"""
 
 # Relatedness Testing
 rule relatedness_test:
@@ -289,6 +304,7 @@ rule multiqc:
 		mark_duplicate_metrics = expand("output/qc_reports/mark_duplicates/{sample_name}_{sample_number}_MarkDuplicatesMetrics.txt", zip, sample_name=sample_names, sample_number=sample_numbers),
 		base_depth = expand("output/qc_reports/depth/{sample_name}_{sample_number}_per_base.coverage", zip, sample_name=sample_names, sample_number=sample_numbers ),
 		exon_depth = expand("output/qc_reports/depth/{sample_name}_{sample_number}_exon.coverage", zip, sample_name=sample_names, sample_number=sample_numbers ),
+		snp_depth = expand("output/qc_reports/depth/{sample_name}_{sample_number}_snps.coverage", zip, sample_name=sample_names, sample_number=sample_numbers ),
 		fastqc = get_fastqc,
 		relatedness = expand("output/qc_reports/relatedness/{worksheet}.relatedness2", worksheet=worksheet)
 	output:
@@ -303,13 +319,12 @@ rule multiqc:
 # SNP and Small Indel Calling with GATK Haplotype Caller
 #-----------------------------------------------------------------------------------------------------------------#
 
-
 # Sort ROI bed for splitting by bedextract
 rule sort_capture_bed:
 	input:
-		ancient(config["capture_bed_file"])
+		ancient(config["padded_roi_bed_file"])
 	output:
-		"output/config/sorted_beds/{{panel}}_sorted.bed".format(panel=panel)
+		temp("output/config/sorted_beds/{{panel}}_sorted.bed".format(panel=panel))
 	shell:
 		"sort-bed {input} > {output}"
 
@@ -320,7 +335,7 @@ rule split_bed_by_chromosome:
 	output:
 		expand("output/config/split_capture_bed/{chr}.bed", chr=chromosomes)
 	params:
-		chromosomes = chromosomes,
+		chromosomes = chromosomes
 	shell:
 		"for chr in {params.chromosomes}; do bedextract $chr {input} > output/config/split_capture_bed/$chr.bed; done"
 
@@ -403,6 +418,9 @@ rule collect_vcfs:
 		"I={params.files} "
 		"O={output.vcf}"
 
+#-----------------------------------------------------------------------------------------------------------------#
+# SNP and Small Indel Calling for de novo calling - TODO - Platypus or Vardict caller? Depth and PL information? recalling?
+#-----------------------------------------------------------------------------------------------------------------#
 
 
 #-----------------------------------------------------------------------------------------------------------------#
@@ -412,13 +430,13 @@ rule collect_vcfs:
 # Use hard filtering on quality attributes
 # See https://gatkforums.broadinstitute.org/gatk/discussion/6925
 # for more information on the values chosen here.
-rule hard_filter_vcf:
+rule hard_filter_vcf_gatk:
 	input:
 		vcf = "output/jointvcf/{worksheet}_all_chr.vcf",
 		index = "output/jointvcf/{worksheet}_all_chr.vcf.idx",
 	output:
-		vcf = "output/qfiltered_jointvcf/{worksheet}_all_chr_qfiltered.vcf",
-		index = "output/qfiltered_jointvcf/{worksheet}_all_chr_qfiltered.vcf.idx"
+		vcf = temp("output/qfiltered_jointvcf/{worksheet}_all_chr_qfiltered.vcf"),
+		index = temp("output/qfiltered_jointvcf/{worksheet}_all_chr_qfiltered.vcf.idx")
 	params:
 		ref = config["reference"],
 		min_QD = config['min_QD'],
@@ -438,7 +456,7 @@ rule hard_filter_vcf:
 		"--filter-expression 'ReadPosRankSum < {params.min_ReadPosRankSum}' --filter-name 'LOW_ReadPosRankSum' "
 
 # Compress and index vcf so we can annotate with gene name
-rule compress_and_index_vcf:
+rule compress_and_index_vcf_gatk:
 	input:
 		"output/qfiltered_jointvcf/{worksheet}_all_chr_qfiltered.vcf"
 	output:
@@ -449,9 +467,9 @@ rule compress_and_index_vcf:
 
 
 # Compress and index bedfile so we can use bcftools to annotate with gene
-rule compress_and_index_bed_file:
+rule compress_and_index_bed_file_gatk:
 	input:
-		config["gene_bed_file"]
+		ancient(config["gene_bed_file"])
 	output:
 		bed = "output/config/" + Path(config["gene_bed_file"]).name.split(".")[0] + ".bed.gz",
 		index = "output/config/" + Path(config["gene_bed_file"]).name.split(".")[0] + ".bed.gz.tbi"
@@ -460,14 +478,14 @@ rule compress_and_index_bed_file:
 
 
 # Annotate with gene bed file.
-rule annotate_vcf_with_gene:
+rule annotate_vcf_with_gene_gatk:
 	input:
 		vcf = "output/qfiltered_jointvcf/{worksheet}_all_chr_qfiltered.vcf.gz",
 		vcf_index = "output/qfiltered_jointvcf/{worksheet}_all_chr_qfiltered.vcf.gz",
 		bed = "output/config/" + Path(config["gene_bed_file"]).name.split(".")[0] + ".bed.gz",
 		bed_index = "output/config/" + Path(config["gene_bed_file"]).name.split(".")[0] + ".bed.gz.tbi"
 	output:
-		vcf = "output/qfiltered_jointvcf_anno/{worksheet}_all_chr_qfiltered_anno.vcf"
+		vcf = temp("output/qfiltered_jointvcf_anno/{worksheet}_all_chr_qfiltered_anno.vcf")
 	shell:
 		"bcftools annotate -a {input.bed} "
 		"-c CHROM,FROM,TO,GENE "
@@ -476,7 +494,7 @@ rule annotate_vcf_with_gene:
 
 
 # Use vt to split multiallelics and normalise variants
-rule decompose_and_normalise:
+rule decompose_and_normalise_gatk:
 	input:
 		"output/qfiltered_jointvcf_anno/{worksheet}_all_chr_qfiltered_anno.vcf"
 	output:
@@ -489,7 +507,7 @@ rule decompose_and_normalise:
 		"vt normalize -r {params.ref} - > {output}"
 
 # Annotate the GATK vcf using VEP
-rule annotate_gatk_vep:
+rule annotate_vep_gatk:
 	input:
 		"output/qfiltered_jointvcf_anno_norm/{worksheet}_all_chr_qfiltered_anno_norm.vcf"
 	output:
@@ -545,28 +563,30 @@ rule convert_gatk_vep_vcf_to_csv_per_family:
 
 
 # Select only Biallelic SNPs which pass filtering i.e. exclude indels and multialleleics and fails
-rule select_relevant_variants:
+rule select_relevant_variants_gatk:
 	input:
 		vcf = "output/qfiltered_jointvcf_anno/{worksheet}_all_chr_qfiltered_anno.vcf",
 	output:
-		"output/qfiltered_jointvcf_anno_selected/{worksheet}_all_chr_qfiltered_anno_selected.vcf"
+		vcf = temp("output/qfiltered_jointvcf_anno_selected/{worksheet}_all_chr_qfiltered_anno_selected.vcf"),
+		index = temp("output/qfiltered_jointvcf_anno_selected/{worksheet}_all_chr_qfiltered_anno_selected.vcf.idx")
 	params:
 		ref = config["reference"]
 	shell:
 		"gatk SelectVariants "
 		"-R {params.ref} "
 		"-V {input} "
-		"-O {output} "
+		"-O {output.vcf} "
 		"-select-type SNP "
 		"--restrict-alleles-to BIALLELIC "
 		"--exclude-filtered true "
 
 # Split each vcf by family as specified in the config file
-rule split_vcf_by_family:
+rule split_vcf_by_family_gatk:
 	input:
 		"output/qfiltered_jointvcf_anno_selected/{worksheet}_all_chr_qfiltered_anno_selected.vcf"
 	output:
-		expand("output/family_vcfs/{{worksheet}}_all_chr_qfiltered_anno_selected_{FAMID}.vcf", FAMID=config['families'].keys())
+		temp(expand("output/family_vcfs/{{worksheet}}_all_chr_qfiltered_anno_selected_{FAMID}.vcf", FAMID=config['families'].keys())),
+		temp(expand("output/family_vcfs/{{worksheet}}_all_chr_qfiltered_anno_selected_{FAMID}.vcf.idx", FAMID=config['families'].keys()))
 	params:
 		ref = config["reference"],
 		config = config_location
@@ -579,7 +599,7 @@ rule split_vcf_by_family:
 		"--output_prefix {wildcards.worksheet}_all_chr_qfiltered_anno_selected"
 
 # Create family CSVs from VCFs ready for SPRT analysis
-rule create_family_csv:
+rule create_family_csv_gatk:
 	input:
 		"output/family_vcfs/{worksheet}_all_chr_qfiltered_anno_selected_{FAMID}.vcf"
 	output:

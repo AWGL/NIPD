@@ -32,6 +32,12 @@ def parse_config(config_location):
 			print(exc)
 			raise
 
+def filter_func(variant):
+
+	family_members = variant.family.get_members()
+
+	
+
 
 parser = argparse.ArgumentParser(description='Split a VCF file by family')
 parser.add_argument('--input', type=str, nargs=1, required=True,
@@ -62,10 +68,12 @@ for family_id in config_dict['families'].keys():
 	my_family = Family(family_id)
 
 	for member in members:
-	    
-	    sample_id = members[member]
-	    new_family_member = FamilyMember(sample_id, family_id, 1,False  )
-	    my_family.add_family_member(new_family_member)
+
+		sample_id = members[member]
+
+		if sample_id != None:
+			new_family_member = FamilyMember(sample_id, family_id, 1,False  )
+			my_family.add_family_member(new_family_member)
 
 	# Create variant set
 	my_variant_set = VariantSet()
@@ -96,11 +104,13 @@ for family_id in config_dict['families'].keys():
 	for member in members:
 	    
 	    sample_id = members[member]
+
+	    if sample_id != None:
 	    
-	    columns.append(f'{sample_id}_GT')
-	    columns.append(f'{sample_id}_AD')
-	    columns.append(f'{sample_id}_DP')
-	    columns.append(f'{sample_id}_GQ')
+	    	columns.append(f'{sample_id}_GT')
+	    	columns.append(f'{sample_id}_AD')
+	    	columns.append(f'{sample_id}_DP')
+	    	columns.append(f'{sample_id}_GQ')
 
 
 	df[columns].to_csv(f'{args.output_dir[0]}/{args.output_prefix[0]}_{family_id}.csv', index=False)

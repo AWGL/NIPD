@@ -156,7 +156,7 @@ class XLinkedAnalyser():
 
 
 		self.df = pd.DataFrame(snps_to_keep)
-		self.df.drop('Index', inplace=True,axis=1)
+		self.df.drop('Index', inplace=True, axis=1)
 		self.after_distance_filter_variant_count = self.df.shape[0]
 
 
@@ -191,7 +191,7 @@ class XLinkedAnalyser():
 	def get_relevant_snps(self):
 
 		self.df = self.df[(self.df[self.maternal_sample + '_call'] == 'HET') & (self.df[self.proband_sample + '_call'] == 'HOM') ]
-		self.informative_snp_count = self.df.shape
+		self.informative_snp_count = self.df.shape[0]
 
 	def get_haplotype_counts(self):
 
@@ -298,10 +298,10 @@ class XLinkedAnalyser():
 		self.get_average_snp_depth()
 		self.filter_on_depth()
 		self.genotype_samples()
-		self.get_relevant_snps()
 		self.assign_analysis_gene()
 		self.filter_on_distance()
 		self.get_allele_depths()
+		self.get_relevant_snps()
 		self.get_haplotype_counts()
 		self.get_fetal_fraction_x_linked()
 		self.analyse_xlinked_snps()

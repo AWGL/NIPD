@@ -156,7 +156,7 @@ class NIPDTools():
 	def calculate_autosomal_fetal_fraction(df, maternal_sample, paternal_sample, plasma_sample):
 		"""
 		Calculates the fetal fraction based on snps which the mum and \
-		dad are both homozygouse for different alleles.
+		dad are both homozygous for different alleles.
 		
 		Input should be a dataframe containing autosomal type 1 snps
 
