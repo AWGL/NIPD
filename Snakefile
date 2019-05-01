@@ -244,14 +244,13 @@ rule collect_alignment_metrics:
 rule get_per_base_coverage:
 	input:
 		bam = "output/merged_bams/{sample_name}_{sample_number}_merged_nodups.bam",
-		bam_index = "output/merged_bams/{sample_name}_{sample_number}_merged_nodups.bai"
+		bam_index = "output/merged_bams/{sample_name}_{sample_number}_merged_nodups.bai",
+		bed = "output/config/sorted_beds/{panel}_sorted.bed".format(panel=panel)
 	output:
 		"output/qc_reports/depth/{sample_name}_{sample_number}_per_base.coverage"
-	params:
-		bed = config["padded_roi_bed_file"]
 	shell:
 		"sambamba depth base "
-		"-L {params.bed} --min-coverage=0 "
+		"-L {input.bed} --min-coverage=0 "
 		"{input.bam} > {output} "
 
 # Calculate exon coverage with sambamba
@@ -338,7 +337,6 @@ rule split_bed_by_chromosome:
 		chromosomes = chromosomes
 	shell:
 		"for chr in {params.chromosomes}; do bedextract $chr {input} > output/config/split_capture_bed/$chr.bed; done"
-
 
 # Create GVCF using Haplotype Caller for each sample chromosome combination
 rule create_gvcfs:
