@@ -6,22 +6,33 @@ reference:
   /state/partition1/db/human/gatk/2.8/b37/human_g1k_v37.fasta
 dbsnp_vcf:
   /data/db/human/gatk/2.8/b37/dbsnp_138.b37_new.vcf.gz
+
 gene_bed_file:
-  /data/results/181129_NB551415_0005_AHWW37BGX7/NIPD1/config/NIPDv6/beds/NIPDv6_genes.bed
-capture_bed_file:
-  /data/results/181129_NB551415_0005_AHWW37BGX7/NIPD1/config/NIPDv6/beds/NIPDv6_capture_targets.bed
-primary_bed_file:
-  /data/results/181129_NB551415_0005_AHWW37BGX7/NIPD1/config/NIPDv6/beds/NIPDv6_primary_targets.bed
+  /home/joseph/Documents/NIPD/NIPD/config/NIPDFinal/beds/nipd_final_genes.bed
+roi_bed_file:
+  /home/joseph/Documents/NIPD/NIPD/config/NIPDFinal/beds/nipd_final_roi.bed
+padded_roi_bed_file:
+  /home/joseph/Documents/NIPD/NIPD/config/NIPDFinal/beds/nipd_final_roi_padded30.bed
+exon_bed_file:
+  /home/joseph/Documents/NIPD/NIPD/config/NIPDFinal/beds/nipd_final_exons_padded30.bed
+snp_bed:
+  /home/joseph/Documents/NIPD/NIPD/config/NIPDFinal/beds/nipd_final_snp_coordinates.bed
+
 reference_sequence_dict:
   /data/db/human/mappers/b37/bwa/human_g1k_v37.dict
+vep_cache_location:
+  /share/data/db/human/vep/vep_cache
+gnomad_exomes:
+  /share/data/db/human/gnomad/gnomad.exomes.r2.0.1.sites.vcf.gz
+gnomad_genomes:
+  /share/data/db/human/vep/snps/gnomad.genomes.r2.0.1.sites.noVEP.vcf.gz
 picard_temp_dir:
   /state/partition1/tmpdir
 fastqc_temp_dir:
   /state/partition1/tmpdir
 samtools_temp_dir:
   /state/partition1/tmpdir
-vep_cache:
-  /share/data/db/human/vep/vep_cache
+
 
 # Threads to Use
 bwa_threads:
@@ -30,10 +41,8 @@ fastp_threads:
   12
 fastqc_threads:
   12
-mosdepth_threads:
-  1
 vep_threads:
-  6
+  12
 
 # Java Options
 java_home: #activate conda environment and type which java - needed for cluster
@@ -92,70 +101,4 @@ min_MQRankSum:
   -12.5
 min_ReadPosRankSum:
   -8.0
-
-samples:
-  [14M01888,14M02709,F1-15,F2-10,F3-8,F4-5,F5-2,16M96501,16M96867,F5-2-DIL]
-
-sample_numbers:
-  [S1, S2, S3, S4, S5, S6, S7, S8, S9, S10]
-
-families:
-  FAM001:
-    analysis_required: X-linked
-    members:
-      mother: 14M01888
-      plasma: F1-15
-      proband: 14M02709
-      father: null
-  FAM002:
-    analysis_required: X-linked
-    members:
-      mother: 14M01888
-      plasma: F2-10
-      proband: 14M02709
-      father: null
-  FAM003:
-    analysis_required: X-linked
-    members:
-      mother: 14M01888
-      plasma: F3-8
-      proband: 14M02709
-      father: null
-  FAM004:
-    analysis_required: X-linked
-    members:
-      mother: 14M01888
-      plasma: F4-5
-      proband: 14M02709
-      father: null
-  FAM005:
-    analysis_required: X-linked
-    members:
-      mother: 14M01888
-      plasma: F5-2
-      proband: 14M02709
-      father: null
-  FAM006:
-    analysis_required: X-linked
-    members:
-      mother: null
-      plasma: 16M96501
-      proband: null
-      father: null
-  FAM007:
-    analysis_required: X-linked
-    members:
-      mother: null
-      plasma: 16M96867
-      proband: null
-      father: null
-  FAM008:
-    analysis_required: X-linked
-    members:
-      mother: 14M01888
-      plasma: F5-2-DIL
-      proband: 14M02709
-      father: null
-
-
 

@@ -19,5 +19,35 @@
         "walltime" : "6:00:00",
         "ncpus" : 4
     },
+    "merge_and_remove_duplicates" :
+    {
+        "walltime" : "6:00:00",
+        "ncpus" : 6
+    },
+    "create_interval_file" :
+    {
+        "walltime" : "6:00:00",
+        "ncpus" : 1
+    },
+    "collect_insert_size_metrics" :
+    {
+        "walltime" : "6:00:00",
+        "ncpus" : 3
+    },
+    "collect_hs_metrics" :
+    {
+        "walltime" : "6:00:00",
+        "ncpus" : 3
+    },
+    "collect_alignment_metrics" :
+    {
+        "walltime" : "6:00:00",
+        "ncpus" : 3
+    },
+    "collect_insert_size_metrics" :
+    {
+        "walltime" : "6:00:00",
+        "ncpus" : 3
+    },
 
 }

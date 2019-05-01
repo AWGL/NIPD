@@ -280,7 +280,6 @@ rule get_snp_coverage:
 		"""
 		tail {input} -n+2 | awk 'BEGIN {{ OFS =\"\\t\" }} {{print $1,$2,$2+1,$3}}' > {output.per_base_bed}
 		bedtools intersect -a {params.snp_bed} -b {output.per_base_bed} -loj > {output.snp_coverage}
-	
 		"""
 
 # Relatedness Testing
