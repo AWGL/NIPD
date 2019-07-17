@@ -4,34 +4,30 @@ bwa_reference:
   /state/partition1/db/human/mappers/b37/bwa/human_g1k_v37.fasta
 reference:
   /state/partition1/db/human/gatk/2.8/b37/human_g1k_v37.fasta
-dbsnp_vcf:
-  /data/db/human/gatk/2.8/b37/dbsnp_138.b37_new.vcf.gz
-
 gene_bed_file:
-  /home/joseph/Documents/NIPD/NIPD/config/NIPDFinal/beds/nipd_final_genes.bed
+  /share/data/diagnostics/pipelines/NIPD/NIPD-development/config/NIPDFinal/beds/nipd_final_genes.bed
 roi_bed_file:
-  /home/joseph/Documents/NIPD/NIPD/config/NIPDFinal/beds/nipd_final_roi.bed
+  /share/data/diagnostics/pipelines/NIPD/NIPD-development/config/NIPDFinal/beds/nipd_final_roi.bed
 padded_roi_bed_file:
-  /home/joseph/Documents/NIPD/NIPD/config/NIPDFinal/beds/nipd_final_roi_padded30.bed
+  /share/data/diagnostics/pipelines/NIPD/NIPD-development/config/NIPDFinal/beds/nipd_final_roi_padded30.bed
 exon_bed_file:
-  /home/joseph/Documents/NIPD/NIPD/config/NIPDFinal/beds/nipd_final_exons_padded30.bed
+  /share/data/diagnostics/pipelines/NIPD/NIPD-development/config/NIPDFinal/beds/nipd_final_exons_padded30.bed
 snp_bed:
-  /home/joseph/Documents/NIPD/NIPD/config/NIPDFinal/beds/nipd_final_snp_coordinates.bed
-
+  /share/data/diagnostics/pipelines/NIPD/NIPD-development/config/NIPDFinal/beds/nipd_final_snp_coordinates.bed
 reference_sequence_dict:
-  /data/db/human/mappers/b37/bwa/human_g1k_v37.dict
+  /share/data/db/human/mappers/b37/bwa/human_g1k_v37.dict
 vep_cache_location:
-  /share/data/db/human/vep/vep_cache
+  /share/data/db/human/vep_cache/refseq37/
 gnomad_exomes:
   /share/data/db/human/gnomad/gnomad.exomes.r2.0.1.sites.vcf.gz
 gnomad_genomes:
-  /share/data/db/human/vep/snps/gnomad.genomes.r2.0.1.sites.noVEP.vcf.gz
+  /share/data/db/human/gnomad/gnomad.genomes.r2.0.1.sites.noVEP.vcf.gz
 picard_temp_dir:
-  /state/partition1/tmpdir
+  /state/partition1/tmpdir/
 fastqc_temp_dir:
-  /state/partition1/tmpdir
+  /state/partition1/tmpdir/
 samtools_temp_dir:
-  /state/partition1/tmpdir
+  /state/partition1/tmpdir/
 
 
 # Threads to Use
@@ -39,32 +35,34 @@ bwa_threads:
   12
 fastp_threads:
   12
+fastq_screen_threads:
+  12
 fastqc_threads:
   12
 vep_threads:
   12
 
+
 # Java Options
-java_home: #activate conda environment and type which java - needed for cluster
+java_home:
   /home/transfer/miniconda3/envs/nipd/bin/java
 gatk_hc_java_options:
-  -XX:GCTimeLimit=50 -XX:GCHeapFreeLimit=10 -Djava.io.tmpdir=/state/partition1/tmpdir -Xmx16g
+  -XX:GCTimeLimit=50 -XX:GCHeapFreeLimit=10 -Djava.io.tmpdir=/state/partition1/tmpdir -Xmx12g
 gatk_bqsr_java_options:
-  -XX:GCTimeLimit=50 -XX:GCHeapFreeLimit=10 -Djava.io.tmpdir=/state/partition1/tmpdir -Xmx8g
+  -XX:GCTimeLimit=50 -XX:GCHeapFreeLimit=10 -Djava.io.tmpdir=/state/partition1/tmpdir -Xmx4g
 gatk_analyse_covariates_java_options:
-  -XX:GCTimeLimit=50 -XX:GCHeapFreeLimit=10 -Djava.io.tmpdir=/state/partition1/tmpdir-Xmx8g
+  -XX:GCTimeLimit=50 -XX:GCHeapFreeLimit=10 -Djava.io.tmpdir=/state/partition1/tmpdir -Xmx2g
 gatk_variants_java_options:
   -XX:GCTimeLimit=50 -XX:GCHeapFreeLimit=10 -Djava.io.tmpdir=/state/partition1/tmpdir -Xmx4g
 gatk_genomics_db_java_options:
-  -XX:GCTimeLimit=50 -XX:GCHeapFreeLimit=10 -Djava.io.tmpdir=/state/partition1/tmpdir -Xmx16g
+  -XX:GCTimeLimit=50 -XX:GCHeapFreeLimit=10 -Djava.io.tmpdir=/state/partition1/tmpdir -Xmx12g
 picard_memory_options:
-  -XX:GCTimeLimit=50 -XX:GCHeapFreeLimit=10 -Djava.io.tmpdir=/state/partition1/tmpdir -Xmx32g
+  -XX:GCTimeLimit=50 -XX:GCHeapFreeLimit=10 -Djava.io.tmpdir=/state/partition1/tmpdir -Xmx20g
 
 # Misc Settings
 # Max records in picard MarkDuplicates
 merge_duplicates_max_records:
   2000000
-# chromsomes to to scatter gather on
 chromosomes:
   ['7', '9', '16', 'X']
 interval_padding_haplotype_caller:
@@ -101,4 +99,3 @@ min_MQRankSum:
   -12.5
 min_ReadPosRankSum:
   -8.0
-
