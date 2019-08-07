@@ -482,7 +482,7 @@ rule annotate_vcf_with_gene_gatk:
 		bed = "output/config/" + Path(config["gene_bed_file"]).name.split(".")[0] + ".bed.gz",
 		bed_index = "output/config/" + Path(config["gene_bed_file"]).name.split(".")[0] + ".bed.gz.tbi"
 	output:
-		vcf = temp("output/qfiltered_jointvcf_anno/{worksheet}_all_chr_qfiltered_anno.vcf")
+		vcf = "output/qfiltered_jointvcf_anno/{worksheet}_all_chr_qfiltered_anno.vcf"
 	shell:
 		"bcftools annotate -a {input.bed} "
 		"-c CHROM,FROM,TO,GENE "
