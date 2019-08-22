@@ -1,0 +1,90 @@
+# Resource Locations
+
+bwa_reference:
+  /media/joseph/Storage/genomic_resources/bwa/human_g1k_v37.fasta
+reference:
+  /media/joseph/Storage/genomic_resources/reference_genomes/human_g1k_v37.fasta
+ref_sequence_dict:
+  /media/joseph/Storage/genomic_resources/reference_genomes/human_g1k_v37.dict
+gene_bed_file:
+  /home/joseph/Documents/NIPD/NIPD/config/NIPDFinal/beds/nipd_final_genes.bed
+roi_bed_file:
+  /home/joseph/Documents/NIPD/NIPD/config/NIPDFinal/beds/nipd_final_roi.bed
+padded_roi_bed_file:
+  /home/joseph/Documents/NIPD/NIPD/config/NIPDFinal/beds/nipd_final_roi_padded30.bed
+exon_bed_file:
+  /home/joseph/Documents/NIPD/NIPD/config/NIPDFinal/beds/nipd_final_exons_padded30.bed
+snp_bed:
+   /home/joseph/Documents/NIPD/NIPD/config/NIPDFinal/beds/nipd_final_snp_coordinates.bed
+reference_sequence_dict:
+  /media/joseph/Storage/genomic_resources/reference_genomes/human_g1k_v37.dict
+vep_cache_location:
+  /media/joseph/Storage/genomic_resources/vep_caches/vep
+gnomad_exomes:
+   /media/joseph/Storage/genomic_resources/gnomad/gnomad.exomes.r2.0.1.sites.vcf.gz
+gnomad_genomes:
+   /media/joseph/Storage/genomic_resources/gnomad/gnomad.genomes.r2.0.1.sites.noVEP.vcf.gz
+picard_temp_dir:
+  /tmp/
+fastqc_temp_dir:
+  /tmp/
+samtools_temp_dir:
+  /tmp/
+
+
+# Threads to Use
+bwa_threads:
+  1
+fastp_threads:
+  1
+fastq_screen_threads:
+  1
+fastqc_threads:
+  1
+vep_threads:
+  1
+platypus_threads:
+  4
+
+
+# Java Options
+java_home:
+  /home/joseph/miniconda3/envs/nipd/bin/java/
+gatk_bqsr_java_options:
+  -XX:GCTimeLimit=50 -XX:GCHeapFreeLimit=10 -Djava.io.tmpdir=/tmp/ -Xmx4g
+gatk_analyse_covariates_java_options:
+  -XX:GCTimeLimit=50 -XX:GCHeapFreeLimit=10 -Djava.io.tmpdir=/tmp/ -Xmx2g
+gatk_variants_java_options:
+  -XX:GCTimeLimit=50 -XX:GCHeapFreeLimit=10 -Djava.io.tmpdir=/tmp/ -Xmx4g
+picard_memory_options:
+  -XX:GCTimeLimit=50 -XX:GCHeapFreeLimit=10 -Djava.io.tmpdir=/tmp/ -Xmx20g
+
+# Misc Settings
+# Max records in picard MarkDuplicates
+merge_duplicates_max_records:
+  2000000
+
+# Run Level Information
+seqID:
+  190806_NB551415_0026_AH5CFVAFXY
+platform:
+  ILLUMINA
+worklistId:
+  test
+flowcell:
+  my_flowcell
+centre:
+  AWGL
+pipelineName:
+  NIPD
+pipelineVersion:
+  0.0.1
+panel:
+  NIPD1
+
+
+
+
+
+
+

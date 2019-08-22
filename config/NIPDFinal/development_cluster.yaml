@@ -43,6 +43,9 @@ fastqc_threads:
   12
 vep_threads:
   12
+platypus_threads:
+  12
+
 
 
 # Java Options

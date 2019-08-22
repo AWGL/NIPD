@@ -12,6 +12,5 @@ __pycache__
 15M06222/
 15M06223/
 ffDNA28/
-development_local.yaml
 *.fastq.gz
 *.variables
