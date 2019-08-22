@@ -61,11 +61,9 @@ def get_fastqc(wildcards):
 # All function pulls all rules together
 rule all:
 	input:
-		expand("output/family_csvs/{worksheet}_all_chr_qfiltered_anno_selected_{FAMID}.csv", worksheet = worksheet, FAMID = families),
-		expand("output/vep_family_csvs/{worksheet}_all_chr_qfiltered_anno_norm_vep_{FAMID}.csv", worksheet = worksheet, FAMID = families),
-		expand("output/qc_reports/multiqc/{worksheet}.html", worksheet = worksheet),
-		expand("output/qfiltered_jointvcf_anno_norm_vep/{worksheet}_all_chr_qfiltered_anno_norm_vep.vcf", worksheet=worksheet)
-
+		expand("output/family_csvs_fixed/{worksheet}_raw_fixed_gene_selected_{FAMID}_fixed.csv", worksheet = worksheet, FAMID = families),
+		expand("output/vep_family_csvs/{worksheet}_vep_{FAMID}.csv", worksheet = worksheet, FAMID = families),
+		expand("output/qc_reports/multiqc/{worksheet}.html", worksheet = worksheet)
 
 #-----------------------------------------------------------------------------------------------------------------#
 # Preprocessing and Read Level Quality Control
@@ -240,6 +238,15 @@ rule collect_alignment_metrics:
 	shell:
 		"export JAVA_HOME={params.java_home}; picard CollectAlignmentSummaryMetrics I={input.bam} O={output} R={params.ref}"
 
+# Sort ROI bed for splitting by bedextract
+rule sort_capture_bed:
+	input:
+		ancient(config["padded_roi_bed_file"])
+	output:
+		temp("output/config/sorted_beds/{{panel}}_sorted.bed".format(panel=panel))
+	shell:
+		"sort-bed {input} > {output}"
+
 # Calculate per base coverage with sambamba
 rule get_per_base_coverage:
 	input:
@@ -285,7 +292,7 @@ rule get_snp_coverage:
 # Relatedness Testing
 rule relatedness_test:
 	input:
-		"output/qfiltered_jointvcf_anno/{worksheet}_all_chr_qfiltered_anno.vcf"
+		"output/raw_vcf_fixed/{worksheet}_raw_fixed.vcf.gz"
 	output:
 		"output/qc_reports/relatedness/{worksheet}.relatedness2"
 	shell:
@@ -323,8 +330,8 @@ rule call_variants_platypus:
 		bams = expand("output/merged_bams/{sample_name}_{sample_number}_merged_nodups.bam" , zip, sample_name=sample_names, sample_number=sample_numbers),
 		bam_indexes = expand("output/merged_bams/{sample_name}_{sample_number}_merged_nodups.bai" , zip, sample_name=sample_names, sample_number=sample_numbers),
 	output:
-		vcf = "output/raw_vcf/{worksheet}_raw.vcf",
-		log = "output/raw_vcf/{worksheet}_log.txt"
+		vcf = temp("output/raw_vcf/{worksheet}_raw.vcf"),
+		log = temp("output/raw_vcf/{worksheet}_log.txt")
 	conda:
 		"envs/platypus.yaml"
 	params:
@@ -351,7 +358,7 @@ rule update_sequence_dict:
 	input:
 		"output/raw_vcf/{worksheet}_raw.vcf"
 	output:
-		temp("output/raw_vcf_fixed/{worksheet}_raw_fixed.vcf")
+		"output/raw_vcf_fixed/{worksheet}_raw_fixed.vcf"
 	params:
 		java_home = config["java_home"],
 		sequence_dict = config["ref_sequence_dict"]
@@ -415,7 +422,7 @@ rule decompose_and_normalise:
 # Annotate the vcf using VEP
 rule annotate_vep:
 	input:
-		"output/raw_vcf_gene_norm/{worksheet}_raw_fixed_gene_norm.vcf"
+		"output/raw_vcf_fixed_gene_norm/{worksheet}_raw_fixed_gene_norm.vcf"
 	output:
 		vcf = "output/raw_vcf_fixed_gene_norm_vep/{worksheet}_raw_fixed_gene_norm_vep.vcf",
 		summary = temp("output/raw_vcf_fixed_gene_norm_vep/{worksheet}_raw_fixed_gene_norm_vep.vcf_summary.html"),
@@ -455,7 +462,7 @@ rule annotate_vep:
 # Create VEP Family CSVs
 rule convert_vep_vcf_to_csv_per_family:
 	input:
-		"output/raw_vcf_fixed_vcf_gene_norm/{worksheet}_raw_fixed_gene_norm.vcf"
+		"output/raw_vcf_fixed_gene_norm_vep/{worksheet}_raw_fixed_gene_norm_vep.vcf"
 	output:
 		expand("output/vep_family_csvs/{{worksheet}}_vep_{FAMID}.csv", FAMID=config['families'].keys())
 	params:
