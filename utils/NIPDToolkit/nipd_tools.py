@@ -1,6 +1,8 @@
 import pandas as pd
 import numpy as np
 from scipy import stats
+import statistics
+
 np.seterr(divide='ignore', invalid='ignore')
 
 class NIPDTools():
@@ -650,11 +652,11 @@ class NIPDTools():
 
 			if result.pvalue < min_p_value and snp_count > min_snps_per_block:
 
-				if sum(normal_pat_array) > sum(mutant_pat_array):
+				if statistics.median(normal_pat_array) >  statistics.median(mutant_pat_array):
 
 					status = 'hapB'
 
-				elif sum(mutant_pat_array) > sum(normal_pat_array):
+				elif  statistics.median(mutant_pat_array) >  statistics.median(normal_pat_array):
 
 					status = 'hapA'
 

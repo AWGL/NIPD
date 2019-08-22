@@ -4,6 +4,8 @@ bwa_reference:
   /state/partition1/db/human/mappers/b37/bwa/human_g1k_v37.fasta
 reference:
   /state/partition1/db/human/gatk/2.8/b37/human_g1k_v37.fasta
+ref_sequence_dict:
+   /state/partition1/db/human/gatk/2.8/b37/human_g1k_v37.dict
 gene_bed_file:
   /share/data/diagnostics/pipelines/NIPD/NIPD-development/config/NIPDFinal/beds/nipd_final_genes.bed
 roi_bed_file:
@@ -46,16 +48,12 @@ vep_threads:
 # Java Options
 java_home:
   /home/transfer/miniconda3/envs/nipd/bin/java
-gatk_hc_java_options:
-  -XX:GCTimeLimit=50 -XX:GCHeapFreeLimit=10 -Djava.io.tmpdir=/state/partition1/tmpdir -Xmx12g
 gatk_bqsr_java_options:
   -XX:GCTimeLimit=50 -XX:GCHeapFreeLimit=10 -Djava.io.tmpdir=/state/partition1/tmpdir -Xmx4g
 gatk_analyse_covariates_java_options:
   -XX:GCTimeLimit=50 -XX:GCHeapFreeLimit=10 -Djava.io.tmpdir=/state/partition1/tmpdir -Xmx2g
 gatk_variants_java_options:
   -XX:GCTimeLimit=50 -XX:GCHeapFreeLimit=10 -Djava.io.tmpdir=/state/partition1/tmpdir -Xmx4g
-gatk_genomics_db_java_options:
-  -XX:GCTimeLimit=50 -XX:GCHeapFreeLimit=10 -Djava.io.tmpdir=/state/partition1/tmpdir -Xmx12g
 picard_memory_options:
   -XX:GCTimeLimit=50 -XX:GCHeapFreeLimit=10 -Djava.io.tmpdir=/state/partition1/tmpdir -Xmx20g
 
@@ -65,8 +63,7 @@ merge_duplicates_max_records:
   2000000
 chromosomes:
   ['7', '9', '16', 'X']
-interval_padding_haplotype_caller:
-  100
+
 
 # Run Level Information
 seqID:
@@ -85,17 +82,3 @@ pipelineVersion:
   0.0.1
 panel:
   NIPD1
-
-# Variant Filtering
-min_QD:
-  2.0
-max_FS:
-  60.0
-max_SOR:
-  3.0
-min_MQ:
-  40.0
-min_MQRankSum:
-  -12.5
-min_ReadPosRankSum:
-  -8.0

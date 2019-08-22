@@ -1,0 +1,6 @@
+name: platypus
+channels:
+- bioconda
+dependencies:
+- python = 2.7
+- platypus-variant

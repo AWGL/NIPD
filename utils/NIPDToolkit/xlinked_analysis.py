@@ -104,9 +104,9 @@ class XLinkedAnalyser():
 		
 		df = self.df
 	
-		snp_depths =  df[self.maternal_sample + '_DP'] + \
-			df[self.proband_sample + '_DP'] + \
-			df[self.plasma_sample + '_DP']
+		snp_depths =  np.append(df[self.maternal_sample + '_DP'], [ \
+			df[self.proband_sample + '_DP'], \
+			df[self.plasma_sample + '_DP']])
 		
 		self.mean_snp_depth = snp_depths.mean()
 	

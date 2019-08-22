@@ -12,7 +12,7 @@ from pathlib import Path
 #-----------------------------------------------------------------------------------------------------------------#
 
 # Which YAMl config to use
-config_location = "development_local.yaml"
+config_location = "config.yaml"
 
 configfile: config_location
 
@@ -317,154 +317,63 @@ rule multiqc:
 # SNP and Small Indel Calling with GATK Haplotype Caller
 #-----------------------------------------------------------------------------------------------------------------#
 
-# Sort ROI bed for splitting by bedextract
-rule sort_capture_bed:
-	input:
-		ancient(config["padded_roi_bed_file"])
-	output:
-		temp("output/config/sorted_beds/{{panel}}_sorted.bed".format(panel=panel))
-	shell:
-		"sort-bed {input} > {output}"
-
-# Split the bed by chromosome for input into create_gvcfs
-rule split_bed_by_chromosome:
-	input:
-		"output/config/sorted_beds/{panel}_sorted.bed".format(panel=panel)
-	output:
-		expand("output/config/split_capture_bed/{chr}.bed", chr=chromosomes)
-	params:
-		chromosomes = chromosomes
-	shell:
-		"for chr in {params.chromosomes}; do bedextract $chr {input} > output/config/split_capture_bed/$chr.bed; done"
-
-# Create GVCF using Haplotype Caller for each sample chromosome combination
-rule create_gvcfs:
-	input:
-		bam_file = "output/merged_bams/{sample_name}_{sample_number}_merged_nodups.bam",
-		bam_index= "output/merged_bams/{sample_name}_{sample_number}_merged_nodups.bai",
-		bed = "output/config/split_capture_bed/{chr}.bed"
-	output:
-		gvcf = temp("output/gvcfs/{sample_name}_{sample_number}_chr{chr}.g.vcf"),
-		gvcf_index = temp("output/gvcfs/{sample_name}_{sample_number}_chr{chr}.g.vcf.idx")
-	params:
-		ref = config["reference"],
-		padding = config['interval_padding_haplotype_caller'],
-		java_options = config['gatk_hc_java_options']
-	shell:
-		"gatk --java-options '{params.java_options}' HaplotypeCaller -R {params.ref} "
-		"-I {input.bam_file} "
-		"--emit-ref-confidence GVCF "
-		"-O {output.gvcf} "
-		"-L {input.bed} "
-		"--interval-padding {params.padding}"
-
-
 # Consolidate all samples into a genomics db for joint genotyping
-rule create_genomics_db:
+rule call_variants_platypus:
 	input:
-		gvcfs = expand("output/gvcfs/{sample_name}_{sample_number}_chr{{chr}}.g.vcf" , zip, sample_name=sample_names, sample_number=sample_numbers),
-		gvcf_indexes = expand("output/gvcfs/{sample_name}_{sample_number}_chr{{chr}}.g.vcf.idx" , zip, sample_name=sample_names, sample_number=sample_numbers),
-		bed = "output/config/split_capture_bed/{chr}.bed"
+		bams = expand("output/merged_bams/{sample_name}_{sample_number}_merged_nodups.bam" , zip, sample_name=sample_names, sample_number=sample_numbers),
+		bam_indexes = expand("output/merged_bams/{sample_name}_{sample_number}_merged_nodups.bai" , zip, sample_name=sample_names, sample_number=sample_numbers),
 	output:
-		temp(directory("output/genomicdbs/{worksheet}_chr{chr}"))
+		vcf = "output/raw_vcf/{worksheet}_raw.vcf",
+		log = "output/raw_vcf/{worksheet}_log.txt"
+	conda:
+		"envs/platypus.yaml"
 	params:
-		files = lambda wildcards, input: " -V ".join(input.gvcfs),
-		java_options = config["gatk_genomics_db_java_options"],
-		padding = config['interval_padding_haplotype_caller']
+		bams = lambda wildcards, input: ",".join(input.bams),
+		ref = config["bwa_reference"],
+		bed = config["padded_roi_bed_file"]
+	threads:
+		config["platypus_threads"]
 	shell:
-		"gatk --java-options '{params.java_options}' "
-		" GenomicsDBImport -V {params.files} "
-		"--genomicsdb-workspace-path {output} "
-		"-L {input.bed} "
-		"--interval-padding {params.padding}"
-
-
-# Genotype the gvcfs and produce a joint vcf
-rule genotype_gvcfs:
-	input:
-		db = directory("output/genomicdbs/{worksheet}_chr{chr}"),
-		bed = "output/config/split_capture_bed/{chr}.bed"
-	output:
-		vcf = temp("output/jointvcf_per_chr/{worksheet}_chr{chr}.vcf"),
-		index = temp("output/jointvcf_per_chr/{worksheet}_chr{chr}.vcf.idx"),
-	params:
-		ref = config["reference"],
-		java_options = config['gatk_hc_java_options'],
-		padding = config['interval_padding_haplotype_caller']
-	shell:
-		"gatk --java-options '{params.java_options}'  GenotypeGVCFs -R {params.ref} "
-		"-V gendb://{input.db} "
-		"-G StandardAnnotation "
-		"-O {output.vcf} "
-		"-L {input.bed} "
-		"--interval-padding {params.padding} "
-
-# Combine the chromsome vcfs into one final vcf with all samples and all chromosomes
-rule collect_vcfs:
-	input:
-		vcf = expand("output/jointvcf_per_chr/{{worksheet}}_chr{chr}.vcf", chr= chromosomes),
-		index = expand("output/jointvcf_per_chr/{{worksheet}}_chr{chr}.vcf.idx", chr= chromosomes),
-	output:
-		vcf = temp("output/jointvcf/{worksheet}_all_chr.vcf"),
-		index = temp("output/jointvcf/{worksheet}_all_chr.vcf.idx")
-	params:
-		files = lambda wildcards, input: " I=".join(input.vcf),
-		java_home = config["java_home"]
-	shell:
-		"export JAVA_HOME={params.java_home}; picard GatherVcfs "
-		"I={params.files} "
-		"O={output.vcf}"
-
-#-----------------------------------------------------------------------------------------------------------------#
-# SNP and Small Indel Calling for de novo calling - TODO - Platypus or Vardict caller? Depth and PL information? recalling?
-#-----------------------------------------------------------------------------------------------------------------#
+		"platypus callVariants --bamFiles={params.bams} "
+		"--refFile={params.ref} "
+		"--output={output.vcf} "
+		"--regions={params.bed} "
+		"--nCPU={threads} "
+		"--logFileName={output.log}"
 
 
 #-----------------------------------------------------------------------------------------------------------------#
 # Filter and Annotate Variants
 #-----------------------------------------------------------------------------------------------------------------#
 
-# Use hard filtering on quality attributes
-# See https://gatkforums.broadinstitute.org/gatk/discussion/6925
-# for more information on the values chosen here.
-rule hard_filter_vcf_gatk:
+# Fix platypus header by adding correct sequence dict
+rule update_sequence_dict:
 	input:
-		vcf = "output/jointvcf/{worksheet}_all_chr.vcf",
-		index = "output/jointvcf/{worksheet}_all_chr.vcf.idx",
+		"output/raw_vcf/{worksheet}_raw.vcf"
 	output:
-		vcf = temp("output/qfiltered_jointvcf/{worksheet}_all_chr_qfiltered.vcf"),
-		index = temp("output/qfiltered_jointvcf/{worksheet}_all_chr_qfiltered.vcf.idx")
+		temp("output/raw_vcf_fixed/{worksheet}_raw_fixed.vcf")
 	params:
-		ref = config["reference"],
-		min_QD = config['min_QD'],
-		max_FS = config['max_FS'],
-		max_SOR = config['max_SOR'],
-		min_MQ = config['min_MQ'],
-		min_MQRankSum = config['min_MQRankSum'],
-		min_ReadPosRankSum = config['min_ReadPosRankSum']
+		java_home = config["java_home"],
+		sequence_dict = config["ref_sequence_dict"]
 	shell:
-		"gatk VariantFiltration -R {params.ref} -O {output.vcf} "
-		"--variant {input.vcf} "
-		"--filter-expression 'QD < {params.min_QD}' --filter-name 'LOW_QD' "
-		"--filter-expression 'FS > {params.max_FS}' --filter-name 'HIGH_FS' "
-		"--filter-expression 'SOR > {params.max_SOR}' --filter-name 'HIGH_SOR' "
-		"--filter-expression 'MQ < {params.min_MQ}' --filter-name 'LOW_MQ' "
-		"--filter-expression 'MQRankSum < {params.min_MQRankSum}' --filter-name 'LOW_MQRankSum' "
-		"--filter-expression 'ReadPosRankSum < {params.min_ReadPosRankSum}' --filter-name 'LOW_ReadPosRankSum' "
+		"export JAVA_HOME={params.java_home}; picard UpdateVcfSequenceDictionary "
+		"I={input} "
+		"O={output} "
+		"SD={params.sequence_dict}"
 
 # Compress and index vcf so we can annotate with gene name
-rule compress_and_index_vcf_gatk:
+rule compress_and_index_vcf:
 	input:
-		"output/qfiltered_jointvcf/{worksheet}_all_chr_qfiltered.vcf"
+		"output/raw_vcf_fixed/{worksheet}_raw_fixed.vcf"
 	output:
-		vcf = temp("output/qfiltered_jointvcf/{worksheet}_all_chr_qfiltered.vcf.gz"),
-		index = temp("output/qfiltered_jointvcf/{worksheet}_all_chr_qfiltered.vcf.gz.tbi")
+		vcf = "output/raw_vcf_fixed/{worksheet}_raw_fixed.vcf.gz",
+		index = "output/raw_vcf_fixed/{worksheet}_raw_fixed.vcf.gz.tbi"
 	shell:
 		"bgzip {input} && tabix {output.vcf}"
 
 
 # Compress and index bedfile so we can use bcftools to annotate with gene
-rule compress_and_index_bed_file_gatk:
+rule compress_and_index_bed_file:
 	input:
 		ancient(config["gene_bed_file"])
 	output:
@@ -475,14 +384,14 @@ rule compress_and_index_bed_file_gatk:
 
 
 # Annotate with gene bed file.
-rule annotate_vcf_with_gene_gatk:
+rule annotate_vcf_with_gene:
 	input:
-		vcf = "output/qfiltered_jointvcf/{worksheet}_all_chr_qfiltered.vcf.gz",
-		vcf_index = "output/qfiltered_jointvcf/{worksheet}_all_chr_qfiltered.vcf.gz",
+		vcf = temp("output/raw_vcf_fixed/{worksheet}_raw_fixed.vcf.gz"),
+		index = temp("output/raw_vcf_fixed/{worksheet}_raw_fixed.vcf.gz.tbi"),
 		bed = "output/config/" + Path(config["gene_bed_file"]).name.split(".")[0] + ".bed.gz",
 		bed_index = "output/config/" + Path(config["gene_bed_file"]).name.split(".")[0] + ".bed.gz.tbi"
 	output:
-		vcf = "output/qfiltered_jointvcf_anno/{worksheet}_all_chr_qfiltered_anno.vcf"
+		vcf = temp("output/raw_vcf_fixed_gene/{worksheet}_raw_fixed_gene.vcf")
 	shell:
 		"bcftools annotate -a {input.bed} "
 		"-c CHROM,FROM,TO,GENE "
@@ -491,11 +400,11 @@ rule annotate_vcf_with_gene_gatk:
 
 
 # Use vt to split multiallelics and normalise variants
-rule decompose_and_normalise_gatk:
+rule decompose_and_normalise:
 	input:
-		"output/qfiltered_jointvcf_anno/{worksheet}_all_chr_qfiltered_anno.vcf"
+		"output/raw_vcf_fixed_gene/{worksheet}_raw_fixed_gene.vcf"
 	output:
-		temp("output/qfiltered_jointvcf_anno_norm/{worksheet}_all_chr_qfiltered_anno_norm.vcf")
+		temp("output/raw_vcf_fixed_gene_norm/{worksheet}_raw_fixed_gene_norm.vcf")
 	params:
 		ref = config["reference"]
 	shell:
@@ -503,14 +412,14 @@ rule decompose_and_normalise_gatk:
 		"vt decompose -s - | "
 		"vt normalize -r {params.ref} - > {output}"
 
-# Annotate the GATK vcf using VEP
-rule annotate_vep_gatk:
+# Annotate the vcf using VEP
+rule annotate_vep:
 	input:
-		"output/qfiltered_jointvcf_anno_norm/{worksheet}_all_chr_qfiltered_anno_norm.vcf"
+		"output/raw_vcf_gene_norm/{worksheet}_raw_fixed_gene_norm.vcf"
 	output:
-		vcf = "output/qfiltered_jointvcf_anno_norm_vep/{worksheet}_all_chr_qfiltered_anno_norm_vep.vcf",
-		summary = temp("output/qfiltered_jointvcf_anno_norm_vep/{worksheet}_all_chr_qfiltered_anno_norm_vep.vcf_summary.html"),
-		warnings = temp("output/qfiltered_jointvcf_anno_norm_vep/{worksheet}_all_chr_qfiltered_anno_norm_vep.vcf_warnings.txt")
+		vcf = "output/raw_vcf_fixed_gene_norm_vep/{worksheet}_raw_fixed_gene_norm_vep.vcf",
+		summary = temp("output/raw_vcf_fixed_gene_norm_vep/{worksheet}_raw_fixed_gene_norm_vep.vcf_summary.html"),
+		warnings = temp("output/raw_vcf_fixed_gene_norm_vep/{worksheet}_raw_fixed_gene_norm_vep.vcf_warnings.txt")
 	params:
 		vep_cache = config["vep_cache_location"],
 		ref = config["reference"],
@@ -544,28 +453,28 @@ rule annotate_vep_gatk:
 		"--custom {params.gnomad_exomes},gnomADe,vcf,exact,0,AF_POPMAX "
 
 # Create VEP Family CSVs
-rule convert_gatk_vep_vcf_to_csv_per_family:
+rule convert_vep_vcf_to_csv_per_family:
 	input:
-		"output/qfiltered_jointvcf_anno_norm_vep/{worksheet}_all_chr_qfiltered_anno_norm_vep.vcf"
+		"output/raw_vcf_fixed_vcf_gene_norm/{worksheet}_raw_fixed_gene_norm.vcf"
 	output:
-		expand("output/vep_family_csvs/{{worksheet}}_all_chr_qfiltered_anno_norm_vep_{FAMID}.csv", FAMID=config['families'].keys())
+		expand("output/vep_family_csvs/{{worksheet}}_vep_{FAMID}.csv", FAMID=config['families'].keys())
 	params:
 		config = config_location
 	shell:
-		"python utils/pipeline_scripts/make_gatk_vep_csv.py "
+		"python utils/pipeline_scripts/make_vep_csv.py "
 		"--input {input} "
 		"--config {params.config} "
 		"--output_dir output/vep_family_csvs/ "
-		"--output_prefix {wildcards.worksheet}_all_chr_qfiltered_anno_norm_vep"
+		"--output_prefix {wildcards.worksheet}_vep"
 
 
 # Select only Biallelic SNPs which pass filtering i.e. exclude indels and multialleleics and fails
-rule select_relevant_variants_gatk:
+rule select_relevant_variants:
 	input:
-		vcf = "output/qfiltered_jointvcf_anno/{worksheet}_all_chr_qfiltered_anno.vcf",
+		vcf = "output/raw_vcf_fixed_gene/{worksheet}_raw_fixed_gene.vcf"
 	output:
-		vcf = temp("output/qfiltered_jointvcf_anno_selected/{worksheet}_all_chr_qfiltered_anno_selected.vcf"),
-		index = temp("output/qfiltered_jointvcf_anno_selected/{worksheet}_all_chr_qfiltered_anno_selected.vcf.idx")
+		vcf = temp("output/raw_vcf_fixed_gene_selected/{worksheet}_raw_fixed_gene_selected.vcf"),
+		index = temp("output/raw_vcf_fixed_gene_selected/{worksheet}_raw_fixed_gene_selected.vcf.idx")
 	params:
 		ref = config["reference"]
 	shell:
@@ -578,12 +487,12 @@ rule select_relevant_variants_gatk:
 		"--exclude-filtered true "
 
 # Split each vcf by family as specified in the config file
-rule split_vcf_by_family_gatk:
+rule split_vcf_by_family:
 	input:
-		"output/qfiltered_jointvcf_anno_selected/{worksheet}_all_chr_qfiltered_anno_selected.vcf"
+		"output/raw_vcf_fixed_gene_selected/{worksheet}_raw_fixed_gene_selected.vcf"
 	output:
-		temp(expand("output/family_vcfs/{{worksheet}}_all_chr_qfiltered_anno_selected_{FAMID}.vcf", FAMID=config['families'].keys())),
-		temp(expand("output/family_vcfs/{{worksheet}}_all_chr_qfiltered_anno_selected_{FAMID}.vcf.idx", FAMID=config['families'].keys()))
+		temp(expand("output/family_vcfs/{{worksheet}}_raw_fixed_gene_selected_{FAMID}.vcf", FAMID=config['families'].keys())),
+		temp(expand("output/family_vcfs/{{worksheet}}_raw_fixed_gene_selected_{FAMID}.vcf.idx", FAMID=config['families'].keys()))
 	params:
 		ref = config["reference"],
 		config = config_location
@@ -593,14 +502,14 @@ rule split_vcf_by_family_gatk:
 		"--config {params.config} "
 		"--ref {params.ref} "
 		"--output_dir output/family_vcfs "
-		"--output_prefix {wildcards.worksheet}_all_chr_qfiltered_anno_selected"
+		"--output_prefix {wildcards.worksheet}_raw_fixed_gene_selected"
 
 # Create family CSVs from VCFs ready for SPRT analysis
-rule create_family_csv_gatk:
+rule create_family_csv:
 	input:
-		"output/family_vcfs/{worksheet}_all_chr_qfiltered_anno_selected_{FAMID}.vcf"
+		"output/family_vcfs/{worksheet}_raw_fixed_gene_selected_{FAMID}.vcf"
 	output:
-		"output/family_csvs/{worksheet}_all_chr_qfiltered_anno_selected_{FAMID}.csv"
+		"output/family_csvs/{worksheet}_raw_fixed_gene_selected_{FAMID}.csv"
 	shell:
 		"gatk VariantsToTable "
 		"-V {input} "
@@ -612,8 +521,17 @@ rule create_family_csv_gatk:
 		"-F ID "
 		"-F GENE "
 		"-GF GT "
-		"-GF AD "
-		"-GF DP "
+		"-GF NR "
+		"-GF NV "
 		"-GF GQ"
 
-
+# Platypus does not create DP and AD format fields so create them from other fields
+rule fix_family_csv_columns:
+	input:
+		"output/family_csvs/{worksheet}_raw_fixed_gene_selected_{FAMID}.csv"
+	output:
+		"output/family_csvs_fixed/{worksheet}_raw_fixed_gene_selected_{FAMID}_fixed.csv"
+	shell:
+		"python utils/pipeline_scripts/fix_family_csv_columns.py "
+		"--input {input} "
+		"--output {output}"

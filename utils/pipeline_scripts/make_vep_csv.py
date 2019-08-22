@@ -32,13 +32,7 @@ def parse_config(config_location):
 			print(exc)
 			raise
 
-def filter_func(variant):
-
-	family_members = variant.family.get_members()
-
-	
-
-
+			
 parser = argparse.ArgumentParser(description='Split a VCF file by family')
 parser.add_argument('--input', type=str, nargs=1, required=True,
 				help='The input VCF file with many samples')
