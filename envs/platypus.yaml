@@ -3,4 +3,4 @@ channels:
 - bioconda
 dependencies:
 - python = 2.7
-- platypus-variant
+- platypus-variant = 0.8.1.2

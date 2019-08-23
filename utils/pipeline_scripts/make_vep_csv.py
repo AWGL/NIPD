@@ -74,7 +74,7 @@ for family_id in config_dict['families'].keys():
 	my_variant_set.add_family(my_family)
 
 	# Read vcf
-	my_variant_set.read_variants_from_vcf(vcf, proband_variants_only=False )
+	my_variant_set.read_variants_from_platypus_vcf(vcf, proband_variants_only=False )
 
 	# Convert to dataframe
 	df = my_variant_set.to_df(add_inheritance=False)

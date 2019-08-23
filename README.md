@@ -2,9 +2,9 @@
 
 ## Introduction
 
-A pipeline to conduct Non-Invasive Prenatal Diagnosis (Research only)
+A pipeline to conduct Non-Invasive Prenatal Diagnosis for X linked and Autosomal Reccessive disorders.
 
-This pipeline is still under active development .
+
 
 ## Installation
 
@@ -59,9 +59,6 @@ sample2/
 	-sample2_S2_L00n_R2_001.fastq.gz
 ```
 
-### Cluster Configuration and Optimisation
-
-Coming soon
 
 ## Run
 
@@ -82,7 +79,7 @@ source activate nipd
 
 mkdir logs
 
-snakemake -p --jobs $NUMBER_OF_JOBS --cluster "qsub -V -o $STD_OUT_LOG_DIR -e $STD_ERROR_LOG_DIR -l ncpus={cluster.ncpus} -l walltime={cluster.walltime}  -d $DATA_DIR" --directory /share/data/results/181129_NB551415_0005_AHWW37BGX7/NIPD1/ -s DATA_DIR/Snakefile --cluster-config $CLUSTER_CONFIG
+snakemake -p --jobs $NUMBER_OF_JOBS --cluster "qsub -V -o $STD_OUT_LOG_DIR -e $STD_ERROR_LOG_DIR -l ncpus=12 -l walltime=12:00:00  -d $DATA_DIR" --directory /share/data/results/181129_NB551415_0005_AHWW37BGX7/NIPD1/ -s DATA_DIR/Snakefile --use-conda
 
 ```
 
@@ -96,7 +93,7 @@ source activate nipd
 
 mkdir logs
 
-snakemake -p --jobs 12 --cluster "qsub -V -o /share/data/results/181129_NB551415_0005_AHWW37BGX7/NIPD1/logs -e /share/data/results/181129_NB551415_0005_AHWW37BGX7/NIPD1/logs -l ncpus={cluster.ncpus} -l walltime={cluster.walltime}  -d /share/data/results/181129_NB551415_0005_AHWW37BGX7/NIPD1/" --directory /share/data/results/181129_NB551415_0005_AHWW37BGX7/NIPD1/ -s /share/data/results/181129_NB551415_0005_AHWW37BGX7/NIPD1/Snakefile --cluster-config config/cluster/cluster_config.json 
+snakemake -p --jobs 12 --cluster "qsub -V -o /share/data/results/181129_NB551415_0005_AHWW37BGX7/NIPD1/logs -e /share/data/results/181129_NB551415_0005_AHWW37BGX7/NIPD1/logs -l ncpus=12 -l walltime=12:00:00  -d /share/data/results/181129_NB551415_0005_AHWW37BGX7/NIPD1/" --directory /share/data/results/181129_NB551415_0005_AHWW37BGX7/NIPD1/ -s /share/data/results/181129_NB551415_0005_AHWW37BGX7/NIPD1/Snakefile --use-conda
 
 ```
 

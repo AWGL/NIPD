@@ -4,8 +4,6 @@ bwa_reference:
   /media/joseph/Storage/genomic_resources/bwa/human_g1k_v37.fasta
 reference:
   /media/joseph/Storage/genomic_resources/reference_genomes/human_g1k_v37.fasta
-ref_sequence_dict:
-  /media/joseph/Storage/genomic_resources/reference_genomes/human_g1k_v37.dict
 gene_bed_file:
   /home/joseph/Documents/NIPD/NIPD/config/NIPDFinal/beds/nipd_final_genes.bed
 roi_bed_file:

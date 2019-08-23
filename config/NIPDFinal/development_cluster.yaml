@@ -4,8 +4,6 @@ bwa_reference:
   /state/partition1/db/human/mappers/b37/bwa/human_g1k_v37.fasta
 reference:
   /state/partition1/db/human/gatk/2.8/b37/human_g1k_v37.fasta
-ref_sequence_dict:
-   /state/partition1/db/human/gatk/2.8/b37/human_g1k_v37.dict
 gene_bed_file:
   /share/data/diagnostics/pipelines/NIPD/NIPD-development/config/NIPDFinal/beds/nipd_final_genes.bed
 roi_bed_file:
@@ -64,9 +62,6 @@ picard_memory_options:
 # Max records in picard MarkDuplicates
 merge_duplicates_max_records:
   2000000
-chromosomes:
-  ['7', '9', '16', 'X']
-
 
 # Run Level Information
 seqID:

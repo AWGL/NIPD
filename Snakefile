@@ -292,13 +292,14 @@ rule get_snp_coverage:
 # Relatedness Testing
 rule relatedness_test:
 	input:
-		"output/raw_vcf_fixed/{worksheet}_raw_fixed.vcf.gz"
+		vcf = "output/raw_vcf_fixed/{worksheet}_raw_fixed.vcf.gz",
+		index = "output/raw_vcf_fixed/{worksheet}_raw_fixed.vcf.gz.tbi"
 	output:
 		"output/qc_reports/relatedness/{worksheet}.relatedness2"
 	shell:
 		"vcftools --relatedness2 "
 		"--out output/qc_reports/relatedness/{wildcards.worksheet} "
-		"--vcf {input} "
+		"--gzvcf {input.vcf} "
 	
 # Multiqc to compile all qc data into one file
 rule multiqc:
@@ -336,7 +337,7 @@ rule call_variants_platypus:
 		"envs/platypus.yaml"
 	params:
 		bams = lambda wildcards, input: ",".join(input.bams),
-		ref = config["bwa_reference"],
+		ref = config["reference"],
 		bed = config["padded_roi_bed_file"]
 	threads:
 		config["platypus_threads"]
@@ -361,7 +362,7 @@ rule update_sequence_dict:
 		"output/raw_vcf_fixed/{worksheet}_raw_fixed.vcf"
 	params:
 		java_home = config["java_home"],
-		sequence_dict = config["ref_sequence_dict"]
+		sequence_dict = config["reference_sequence_dict"]
 	shell:
 		"export JAVA_HOME={params.java_home}; picard UpdateVcfSequenceDictionary "
 		"I={input} "
@@ -405,13 +406,24 @@ rule annotate_vcf_with_gene:
 		"-h <(echo '##INFO=<ID=GENE,Number=1,Type=String,Description=\"Gene name\">') "
 		"{input.vcf} -o {output.vcf} "
 
+# Change VCF headers for splitting multiallelics 
+rule fix_vcf_headers:
+	input:
+		"output/raw_vcf_fixed_gene/{worksheet}_raw_fixed_gene.vcf"
+	output:
+		temp("output/raw_vcf_fixed_gene_reheader/{worksheet}_raw_fixed_gene_reheader.vcf")
+	shell:
+		"cat {input} | sed 's/##FORMAT=<ID=GQ,Number=1/##FORMAT=<ID=GQ,Number=./' |   "
+		"sed 's/##FORMAT=<ID=NR,Number=./##FORMAT=<ID=NR,Number=A/' | "
+		"sed 's/##FORMAT=<ID=NV,Number=./##FORMAT=<ID=NV,Number=A/' > {output} "
+
 
 # Use vt to split multiallelics and normalise variants
 rule decompose_and_normalise:
 	input:
-		"output/raw_vcf_fixed_gene/{worksheet}_raw_fixed_gene.vcf"
+		"output/raw_vcf_fixed_gene_reheader/{worksheet}_raw_fixed_gene_reheader.vcf"
 	output:
-		temp("output/raw_vcf_fixed_gene_norm/{worksheet}_raw_fixed_gene_norm.vcf")
+		temp("output/raw_vcf_fixed_gene_reheader_norm/{worksheet}_raw_fixed_gene_reheader_norm.vcf")
 	params:
 		ref = config["reference"]
 	shell:
@@ -422,11 +434,11 @@ rule decompose_and_normalise:
 # Annotate the vcf using VEP
 rule annotate_vep:
 	input:
-		"output/raw_vcf_fixed_gene_norm/{worksheet}_raw_fixed_gene_norm.vcf"
+		"output/raw_vcf_fixed_gene_reheader_norm/{worksheet}_raw_fixed_gene_reheader_norm.vcf"
 	output:
-		vcf = "output/raw_vcf_fixed_gene_norm_vep/{worksheet}_raw_fixed_gene_norm_vep.vcf",
-		summary = temp("output/raw_vcf_fixed_gene_norm_vep/{worksheet}_raw_fixed_gene_norm_vep.vcf_summary.html"),
-		warnings = temp("output/raw_vcf_fixed_gene_norm_vep/{worksheet}_raw_fixed_gene_norm_vep.vcf_warnings.txt")
+		vcf = "output/raw_vcf_fixed_gene_reheader_norm_vep/{worksheet}_raw_fixed_gene_reheader_norm_vep.vcf",
+		summary = temp("output/raw_vcf_fixed_gene_reheader_norm_vep/{worksheet}_raw_fixed_gene_reheader_norm_vep.vcf_summary.html"),
+		warnings = temp("output/raw_vcf_fixed_gene_reheader_norm_vep/{worksheet}_raw_fixed_gene_reheader_norm_vep.vcf_warnings.txt")
 	params:
 		vep_cache = config["vep_cache_location"],
 		ref = config["reference"],
@@ -462,7 +474,7 @@ rule annotate_vep:
 # Create VEP Family CSVs
 rule convert_vep_vcf_to_csv_per_family:
 	input:
-		"output/raw_vcf_fixed_gene_norm_vep/{worksheet}_raw_fixed_gene_norm_vep.vcf"
+		"output/raw_vcf_fixed_gene_reheader_norm_vep/{worksheet}_raw_fixed_gene_reheader_norm_vep.vcf"
 	output:
 		expand("output/vep_family_csvs/{{worksheet}}_vep_{FAMID}.csv", FAMID=config['families'].keys())
 	params:
@@ -516,7 +528,7 @@ rule create_family_csv:
 	input:
 		"output/family_vcfs/{worksheet}_raw_fixed_gene_selected_{FAMID}.vcf"
 	output:
-		"output/family_csvs/{worksheet}_raw_fixed_gene_selected_{FAMID}.csv"
+		temp("output/family_csvs/{worksheet}_raw_fixed_gene_selected_{FAMID}.csv")
 	shell:
 		"gatk VariantsToTable "
 		"-V {input} "
