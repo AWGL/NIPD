@@ -32,6 +32,21 @@ def parse_config(config_location):
 			print(exc)
 			raise
 
+
+def filter_variants(variant, family_members):
+
+	for member in family_members:
+
+		sample_id = members[member]
+
+		if sample_id != None:
+
+			if variant.has_alt(sample_id) == True:
+
+				return True
+
+	return False
+
 			
 parser = argparse.ArgumentParser(description='Split a VCF file by family')
 parser.add_argument('--input', type=str, nargs=1, required=True,
@@ -75,6 +90,8 @@ for family_id in config_dict['families'].keys():
 
 	# Read vcf
 	my_variant_set.read_variants_from_platypus_vcf(vcf, proband_variants_only=False )
+
+	my_variant_set.filter_variants(filter_variants, args=(members,))
 
 	# Convert to dataframe
 	df = my_variant_set.to_df(add_inheritance=False)
