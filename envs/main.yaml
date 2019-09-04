@@ -7,7 +7,7 @@ dependencies:
 - bedtools = 2.27.1
 - bedops = 2.4.35 
 - fastp = 0.19.5
-- snakemake = 5.3.0
+- snakemake = 5.5.4
 - samtools = 1.9
 - picard = 2.18.17
 - gatk4 = 4.0.11.0
@@ -24,3 +24,5 @@ dependencies:
 - r-ggplot2 = 3.1.0
 - r-gplots = 3.0.1
 - r-reshape = 0.8.7
+- pip:
+  - pyvariantfilter == 0.0.1

@@ -62,7 +62,10 @@ rule all:
 	input:
 		expand("output/family_csvs_fixed/{worksheet}_raw_fixed_gene_selected_{FAMID}_fixed.csv", worksheet = worksheet, FAMID = families),
 		expand("output/vep_family_csvs/{worksheet}_vep_{FAMID}.csv", worksheet = worksheet, FAMID = families),
-		expand("output/qc_reports/multiqc/{worksheet}.html", worksheet = worksheet)
+		expand("output/qc_reports/multiqc/{worksheet}.html", worksheet = worksheet),
+		expand("output/qc_reports/sex/{worksheet}_sex.txt", worksheet=worksheet),
+		expand("output/qc_reports/depth/{sample_name}_{sample_number}_exon.coverage", zip, sample_name=sample_names, sample_number=sample_numbers ),
+		expand("output/qc_reports/depth/{sample_name}_{sample_number}_snps.coverage", zip, sample_name=sample_names, sample_number=sample_numbers )
 
 #-----------------------------------------------------------------------------------------------------------------#
 # Preprocessing and Read Level Quality Control
@@ -313,7 +316,7 @@ rule sex_check:
 		"python utils/pipeline_scripts/calculate_sex.py  "
 		"--input {input.vcf} "
 		"--sample_ids {params.samples} > {output} "
-		
+
 # Multiqc to compile all qc data into one file
 rule multiqc:
 	input:
@@ -321,12 +324,8 @@ rule multiqc:
 		hs_metrics_metrics = expand("output/qc_reports/hs_metrics/{sample_name}_{sample_number}_HsMetrics.txt", zip, sample_name=sample_names, sample_number=sample_numbers),
 		alignment_metrics = expand("output/qc_reports/alignment_metrics/{sample_name}_{sample_number}_AlignmentSummaryMetrics.txt", zip, sample_name=sample_names, sample_number=sample_numbers),
 		mark_duplicate_metrics = expand("output/qc_reports/mark_duplicates/{sample_name}_{sample_number}_MarkDuplicatesMetrics.txt", zip, sample_name=sample_names, sample_number=sample_numbers),
-		base_depth = expand("output/qc_reports/depth/{sample_name}_{sample_number}_per_base.coverage", zip, sample_name=sample_names, sample_number=sample_numbers ),
-		exon_depth = expand("output/qc_reports/depth/{sample_name}_{sample_number}_exon.coverage", zip, sample_name=sample_names, sample_number=sample_numbers ),
-		snp_depth = expand("output/qc_reports/depth/{sample_name}_{sample_number}_snps.coverage", zip, sample_name=sample_names, sample_number=sample_numbers ),
 		fastqc = get_fastqc,
 		relatedness = expand("output/qc_reports/relatedness/{worksheet}.relatedness2", worksheet=worksheet),
-		sex = expand("output/qc_reports/sex/{worksheet}_sex.txt", worksheet=worksheet)
 	output:
 		html = "output/qc_reports/multiqc/" + worksheet + ".html",
 		data = directory("output/qc_reports/multiqc/" + worksheet + "_data")
@@ -336,10 +335,10 @@ rule multiqc:
 		"multiqc --filename {params.worksheet} --exclude fastp --outdir output/qc_reports/multiqc/ output/qc_reports"
 
 #-----------------------------------------------------------------------------------------------------------------#
-# SNP and Small Indel Calling with GATK Haplotype Caller
+# SNP and Small Indel Calling with Platypus
 #-----------------------------------------------------------------------------------------------------------------#
 
-# Consolidate all samples into a genomics db for joint genotyping
+# Call variants with Platypus and create multisample VCF
 rule call_variants_platypus:
 	input:
 		bams = expand("output/merged_bams/{sample_name}_{sample_number}_merged_nodups.bam" , zip, sample_name=sample_names, sample_number=sample_numbers),
@@ -408,8 +407,8 @@ rule compress_and_index_bed_file:
 # Annotate with gene bed file.
 rule annotate_vcf_with_gene:
 	input:
-		vcf = temp("output/raw_vcf_fixed/{worksheet}_raw_fixed.vcf.gz"),
-		index = temp("output/raw_vcf_fixed/{worksheet}_raw_fixed.vcf.gz.tbi"),
+		vcf = "output/raw_vcf_fixed/{worksheet}_raw_fixed.vcf.gz",
+		index = "output/raw_vcf_fixed/{worksheet}_raw_fixed.vcf.gz.tbi",
 		bed = "output/config/" + Path(config["gene_bed_file"]).name.split(".")[0] + ".bed.gz",
 		bed_index = "output/config/" + Path(config["gene_bed_file"]).name.split(".")[0] + ".bed.gz.tbi"
 	output:
