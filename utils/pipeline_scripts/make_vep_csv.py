@@ -34,6 +34,10 @@ def parse_config(config_location):
 
 
 def filter_variants(variant, family_members):
+	"""
+	Only include variants where at least one family member has the variant.
+
+	"""
 
 	for member in family_members:
 

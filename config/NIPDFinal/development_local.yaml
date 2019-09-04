@@ -48,12 +48,6 @@ platypus_threads:
 # Java Options
 java_home:
   /home/joseph/miniconda3/envs/nipd/bin/java/
-gatk_bqsr_java_options:
-  -XX:GCTimeLimit=50 -XX:GCHeapFreeLimit=10 -Djava.io.tmpdir=/tmp/ -Xmx4g
-gatk_analyse_covariates_java_options:
-  -XX:GCTimeLimit=50 -XX:GCHeapFreeLimit=10 -Djava.io.tmpdir=/tmp/ -Xmx2g
-gatk_variants_java_options:
-  -XX:GCTimeLimit=50 -XX:GCHeapFreeLimit=10 -Djava.io.tmpdir=/tmp/ -Xmx4g
 picard_memory_options:
   -XX:GCTimeLimit=50 -XX:GCHeapFreeLimit=10 -Djava.io.tmpdir=/tmp/ -Xmx20g
 

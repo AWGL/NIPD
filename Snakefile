@@ -30,7 +30,6 @@ lanes =  list((set(lanes)))
 folder, sample_names, sample_numbers = glob_wildcards("{folder}/{sample_name}_{sample_number}_L001_R1_001.fastq.gz")
 
 # Get other data from config file
-chromosomes = config["chromosomes"]
 panel = config["panel"]
 
 #-----------------------------------------------------------------------------------------------------------------#
@@ -300,7 +299,21 @@ rule relatedness_test:
 		"vcftools --relatedness2 "
 		"--out output/qc_reports/relatedness/{wildcards.worksheet} "
 		"--gzvcf {input.vcf} "
-	
+
+# calculate the sex by counting number of hets on X chromosome
+rule sex_check:
+	input:
+		vcf = "output/raw_vcf_fixed_gene_reheader_norm_vep/{worksheet}_raw_fixed_gene_reheader_norm_vep.vcf.gz",
+		index = "output/raw_vcf_fixed_gene_reheader_norm_vep/{worksheet}_raw_fixed_gene_reheader_norm_vep.vcf.gz.tbi"
+	output:
+		"output/qc_reports/sex/{worksheet}_sex.txt"
+	params:
+		samples = " ".join(sample_names)
+	shell:
+		"python utils/pipeline_scripts/calculate_sex.py  "
+		"--input {input.vcf} "
+		"--sample_ids {params.samples} > {output} "
+		
 # Multiqc to compile all qc data into one file
 rule multiqc:
 	input:
@@ -312,7 +325,8 @@ rule multiqc:
 		exon_depth = expand("output/qc_reports/depth/{sample_name}_{sample_number}_exon.coverage", zip, sample_name=sample_names, sample_number=sample_numbers ),
 		snp_depth = expand("output/qc_reports/depth/{sample_name}_{sample_number}_snps.coverage", zip, sample_name=sample_names, sample_number=sample_numbers ),
 		fastqc = get_fastqc,
-		relatedness = expand("output/qc_reports/relatedness/{worksheet}.relatedness2", worksheet=worksheet)
+		relatedness = expand("output/qc_reports/relatedness/{worksheet}.relatedness2", worksheet=worksheet),
+		sex = expand("output/qc_reports/sex/{worksheet}_sex.txt", worksheet=worksheet)
 	output:
 		html = "output/qc_reports/multiqc/" + worksheet + ".html",
 		data = directory("output/qc_reports/multiqc/" + worksheet + "_data")
@@ -471,17 +485,28 @@ rule annotate_vep:
 		"--custom {params.gnomad_genomes},gnomADg,vcf,exact,0,AF_POPMAX "
 		"--custom {params.gnomad_exomes},gnomADe,vcf,exact,0,AF_POPMAX "
 
+# compress and index the vep vcf
+rule compress_and_index_vep_vcf:
+	input:
+		"output/raw_vcf_fixed_gene_reheader_norm_vep/{worksheet}_raw_fixed_gene_reheader_norm_vep.vcf"
+	output:
+		vcf = "output/raw_vcf_fixed_gene_reheader_norm_vep/{worksheet}_raw_fixed_gene_reheader_norm_vep.vcf.gz",
+		index = "output/raw_vcf_fixed_gene_reheader_norm_vep/{worksheet}_raw_fixed_gene_reheader_norm_vep.vcf.gz.tbi"
+	shell:
+		"bgzip {input} && tabix {output.vcf}"
+
 # Create VEP Family CSVs
 rule convert_vep_vcf_to_csv_per_family:
 	input:
-		"output/raw_vcf_fixed_gene_reheader_norm_vep/{worksheet}_raw_fixed_gene_reheader_norm_vep.vcf"
+		vcf = "output/raw_vcf_fixed_gene_reheader_norm_vep/{worksheet}_raw_fixed_gene_reheader_norm_vep.vcf.gz",
+		index = "output/raw_vcf_fixed_gene_reheader_norm_vep/{worksheet}_raw_fixed_gene_reheader_norm_vep.vcf.gz.tbi"
 	output:
 		expand("output/vep_family_csvs/{{worksheet}}_vep_{FAMID}.csv", FAMID=config['families'].keys())
 	params:
 		config = config_location
 	shell:
 		"python utils/pipeline_scripts/make_vep_csv.py "
-		"--input {input} "
+		"--input {input.vcf} "
 		"--config {params.config} "
 		"--output_dir output/vep_family_csvs/ "
 		"--output_prefix {wildcards.worksheet}_vep"
