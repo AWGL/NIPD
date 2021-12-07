@@ -12,7 +12,7 @@ from pathlib import Path
 #-----------------------------------------------------------------------------------------------------------------#
 
 # Which YAMl config to use
-config_location = "config.yaml"
+config_location = "wren.yaml"
 
 configfile: config_location
 
@@ -62,7 +62,6 @@ rule all:
 	input:
 		expand("output/family_csvs_fixed/{worksheet}_raw_fixed_gene_selected_{FAMID}_fixed.csv", worksheet = worksheet, FAMID = families),
 		expand("output/vep_family_csvs/{worksheet}_vep_{FAMID}.csv", worksheet = worksheet, FAMID = families),
-		expand("output/qc_reports/multiqc/{worksheet}.html", worksheet = worksheet),
 		expand("output/qc_reports/sex/{worksheet}_sex.txt", worksheet=worksheet),
 		expand("output/qc_reports/depth/{sample_name}_{sample_number}_exon.coverage", zip, sample_name=sample_names, sample_number=sample_numbers ),
 		expand("output/qc_reports/depth/{sample_name}_{sample_number}_snps.coverage", zip, sample_name=sample_names, sample_number=sample_numbers )
@@ -168,9 +167,8 @@ rule merge_and_remove_duplicates:
 		merge_duplicates_max_records = config["merge_duplicates_max_records"],
 		files = lambda wildcards, input: " I=".join(input.bams),
 		java_options = config["picard_memory_options"],
-		java_home = config["java_home"]
 	shell:
-		"export JAVA_HOME={params.java_home}; picard {params.java_options} MarkDuplicates I={params.files} "
+		"picard {params.java_options} MarkDuplicates I={params.files} "
 		"O={output.bam} "
 		"METRICS_FILE={output.metrics} "
 		"CREATE_INDEX=true "
@@ -191,25 +189,10 @@ rule create_interval_file:
 		bed = temp("output/config/" + Path(config["roi_bed_file"]).name.split(".")[0] + ".interval_list"),
 	params:
 		sequence_dict = config["reference_sequence_dict"],
-		java_home = config["java_home"]
 	shell:
 		"""
-		export JAVA_HOME={params.java_home}
 		picard BedToIntervalList I={input.bed} O={output.bed} SD={params.sequence_dict}
 		"""
-
-# Collect some insert size metrics using Picard
-rule collect_insert_size_metrics:
-	input:
-		bam = "output/merged_bams/{sample_name}_{sample_number}_merged_nodups.bam",
-		bam_index = "output/merged_bams/{sample_name}_{sample_number}_merged_nodups.bai"
-	output:
-		txt="output/qc_reports/insert_size_metrics/{sample_name}_{sample_number}_InsertSizeMetrics.txt",
-		pdf="output/qc_reports/insert_size_metrics/{sample_name}_{sample_number}_InsertSizeMetrics.pdf"
-	params:
-		java_home = config["java_home"]
-	shell:
-		"export JAVA_HOME={params.java_home}; picard CollectInsertSizeMetrics I={input.bam} O={output.txt} HISTOGRAM_FILE={output.pdf}"
 
 
 # Collect some HS metrics using picard
@@ -222,9 +205,8 @@ rule collect_hs_metrics:
 		"output/qc_reports/hs_metrics/{sample_name}_{sample_number}_HsMetrics.txt"
 	params:
 		ref = config["reference"],
-		java_home = config["java_home"]
 	shell:
-		"export JAVA_HOME={params.java_home}; picard CollectHsMetrics I={input.bam} O={output} R={params.ref} "
+		"picard CollectHsMetrics I={input.bam} O={output} R={params.ref} "
 		"BAIT_INTERVALS={input.intervals_capture} TARGET_INTERVALS={input.intervals_capture}"
 
 # Collect alignment summary metrics using picard
@@ -236,9 +218,8 @@ rule collect_alignment_metrics:
 		"output/qc_reports/alignment_metrics/{sample_name}_{sample_number}_AlignmentSummaryMetrics.txt"
 	params:
 		ref = config["reference"],
-		java_home = config["java_home"]
 	shell:
-		"export JAVA_HOME={params.java_home}; picard CollectAlignmentSummaryMetrics I={input.bam} O={output} R={params.ref}"
+		"picard CollectAlignmentSummaryMetrics I={input.bam} O={output} R={params.ref}"
 
 # Sort ROI bed for splitting by bedextract
 rule sort_capture_bed:
@@ -317,23 +298,6 @@ rule sex_check:
 		"--input {input.vcf} "
 		"--sample_ids {params.samples} > {output} "
 
-# Multiqc to compile all qc data into one file
-rule multiqc:
-	input:
-		insert_size_metrics =  expand("output/qc_reports/insert_size_metrics/{sample_name}_{sample_number}_InsertSizeMetrics.txt", zip, sample_name=sample_names, sample_number=sample_numbers),
-		hs_metrics_metrics = expand("output/qc_reports/hs_metrics/{sample_name}_{sample_number}_HsMetrics.txt", zip, sample_name=sample_names, sample_number=sample_numbers),
-		alignment_metrics = expand("output/qc_reports/alignment_metrics/{sample_name}_{sample_number}_AlignmentSummaryMetrics.txt", zip, sample_name=sample_names, sample_number=sample_numbers),
-		mark_duplicate_metrics = expand("output/qc_reports/mark_duplicates/{sample_name}_{sample_number}_MarkDuplicatesMetrics.txt", zip, sample_name=sample_names, sample_number=sample_numbers),
-		fastqc = get_fastqc,
-		relatedness = expand("output/qc_reports/relatedness/{worksheet}.relatedness2", worksheet=worksheet),
-	output:
-		html = "output/qc_reports/multiqc/" + worksheet + ".html",
-		data = directory("output/qc_reports/multiqc/" + worksheet + "_data")
-	params:
-		worksheet = worksheet
-	shell:
-		"multiqc --filename {params.worksheet} --exclude fastp --outdir output/qc_reports/multiqc/ output/qc_reports"
-
 #-----------------------------------------------------------------------------------------------------------------#
 # SNP and Small Indel Calling with Platypus
 #-----------------------------------------------------------------------------------------------------------------#
@@ -374,10 +338,9 @@ rule update_sequence_dict:
 	output:
 		"output/raw_vcf_fixed/{worksheet}_raw_fixed.vcf"
 	params:
-		java_home = config["java_home"],
 		sequence_dict = config["reference_sequence_dict"]
 	shell:
-		"export JAVA_HOME={params.java_home}; picard UpdateVcfSequenceDictionary "
+		"picard UpdateVcfSequenceDictionary "
 		"I={input} "
 		"O={output} "
 		"SD={params.sequence_dict}"
@@ -451,7 +414,6 @@ rule annotate_vep:
 	output:
 		vcf = "output/raw_vcf_fixed_gene_reheader_norm_vep/{worksheet}_raw_fixed_gene_reheader_norm_vep.vcf",
 		summary = temp("output/raw_vcf_fixed_gene_reheader_norm_vep/{worksheet}_raw_fixed_gene_reheader_norm_vep.vcf_summary.html"),
-		warnings = temp("output/raw_vcf_fixed_gene_reheader_norm_vep/{worksheet}_raw_fixed_gene_reheader_norm_vep.vcf_warnings.txt")
 	params:
 		vep_cache = config["vep_cache_location"],
 		ref = config["reference"],
@@ -473,7 +435,7 @@ rule annotate_vep:
 		"--dir  {params.vep_cache} "
 		"--fasta {params.ref} "
 		"--offline "
-		"--cache_version 94 "
+		"--cache_version 100 "
 		"--no_escape "
 		"--shift_hgvs 1 "
 		"--vcf "

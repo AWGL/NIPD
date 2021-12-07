@@ -1,28 +1,20 @@
 name: nipd
 channels:
 - bioconda
+- conda-forge
 dependencies:
 - python = 3.6
 - bwa = 0.7.8
 - bedtools = 2.27.1
 - bedops = 2.4.35 
 - fastp = 0.19.5
-- snakemake = 5.5.4
-- samtools = 1.9
+- samtools
 - picard = 2.18.17
 - gatk4 = 4.0.11.0
 - fastqc = 0.11.8
-- htslib = 1.9
-- bcftools = 1.9
-- multiqc = 1.6
-- ensembl-vep = 94.5
-- vt = 0.57721
+- htslib
+- bcftools
+- ensembl-vep = 100
+- vt = 2015.11.10
 - sambamba = 0.6.9
 - vcftools = 0.1.16
-- r = 3.5.1
-- r-essentials = 1.7.0
-- r-ggplot2 = 3.1.0
-- r-gplots = 3.0.1
-- r-reshape = 0.8.7
-- pip:
-  - pyvariantfilter == 0.0.1
